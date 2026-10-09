@@ -26,3 +26,6 @@ jobs:
 
       - name: Build Next.js Site
         run: npm run build
+      
+      - name: Run Server
+        run: servy-cli restart --name="CalendarSite"
