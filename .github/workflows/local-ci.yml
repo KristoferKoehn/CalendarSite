@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    # Tells GitHub to send this job to your local machine's runner
+    # Tells GitHub to send this job to your local machine's runner test test
     runs-on: self-hosted
 
     steps:
