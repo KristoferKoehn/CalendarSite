@@ -12,20 +12,41 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      run: |
+          # Navigate to the live project folder
+          cd C:\Users\ferna\Documents\CalendarSite
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22 # Matches modern Next.js environments
-          cache: 'npm'     # Speeds up local builds by caching npm modules
+          # pull latest changes
+          git pull origin main
 
-      - name: Install Dependencies
-        run: npm ci
+          # install dependancies
+          npm install
 
-      - name: Build Next.js Site
-        run: npm run build
+          # restart the servy-managed dev server
+          servy-cli restart --name="CalendarSite2" --quiet
+
+          #verify sservice is running
+          $status = servy-cli status --name="CalendarSite" --quiet
+          if ($status -notmach "Running") {
+            Write-Error "Dev server failed to start. Status: $status"
+            exit 1
+          }
+
+          Write-Host "Dev server restarted successfuly"
+    #   - name: Checkout Repository
+    #     uses: actions/checkout@v4
+
+    #   - name: Setup Node.js
+    #     uses: actions/setup-node@v4
+    #     with:
+    #       node-version: 22 # Matches modern Next.js environments
+    #       cache: 'npm'     # Speeds up local builds by caching npm modules
+
+    #   - name: Install Dependencies
+    #     run: npm ci
+
+    #   - name: Build Next.js Site
+    #     run: npm run build
       
-      - name: Run Server
-        run: servy-cli restart --name="CalendarSite"
+    #   - name: Run Server
+    #     run: servy-cli restart --name="CalendarSite"
