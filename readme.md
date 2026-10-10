@@ -33,7 +33,7 @@ npm run build
 npm start
 ```
 
-`npm start` serves on port 80 at `http://localhost`. Port 80 must be free.
+`npm start` binds `0.0.0.0` on port 80 at `http://localhost`. Port 80 must be free.
 
 ## Connect to the real backend
 
