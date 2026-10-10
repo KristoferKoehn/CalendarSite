@@ -35,15 +35,28 @@ npm start
 
 `npm start` binds `0.0.0.0` on port 80 at `http://localhost`. Port 80 must be free.
 
+## Access from the network
+
+Both dev and production bind `0.0.0.0`, so other machines on the LAN can reach
+them:
+
+- Dev: `http://<your-lan-ip>:3000`
+- Production: `http://<your-lan-ip>` (port 80)
+
+No backend is needed while `NEXT_PUBLIC_USE_MOCK=true`; the mock runs entirely in
+the browser. For access from outside the LAN, forward the port on the router and
+allow it through the Windows firewall.
+
 ## Connect to the real backend
 
-Copy `.env.example` to `.env.local` and set:
+The repo ships in stub mode: the in-memory mock is active and the API URL
+already points at the planned backend (`http://couchcollective.software:4000`).
+`NEXT_PUBLIC_USE_MOCK=true` keeps the mock active, so nothing fails before the
+backend exists.
 
-```bash
-NEXT_PUBLIC_API_URL=http://localhost:4000
-```
-
-When `NEXT_PUBLIC_API_URL` is set, the frontend calls the backend over HTTP. Set `NEXT_PUBLIC_USE_MOCK=true` to force the mock anyway.
+When the backend is live, set `NEXT_PUBLIC_USE_MOCK=false` in `.env.local` and
+rebuild. `NEXT_PUBLIC_*` values are inlined at build time, so run
+`npm run build` after changing them.
 
 ## Ports
 
