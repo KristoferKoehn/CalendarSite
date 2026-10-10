@@ -2,51 +2,32 @@ name: Next.js Local Runner Build
 
 on:
   push:
-    branches: [ "main", "master" ] # Triggers on push to main or master
+    branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
 
 jobs:
   build:
-    # Tells GitHub to send this job to your local machine's runner test test ttt
-    runs-on: self-hosted
+    runs-on: [self-hosted, windows]
 
     steps:
-      run: |
-          # Navigate to the live project folder
+      - name: Deploy and restart dev server
+        shell: pwsh
+        run: |
           cd C:\Users\ferna\Documents\CalendarSite
 
-          # pull latest changes
           git pull origin main
+          if ($LASTEXITCODE -ne 0) { Write-Warning "git pull failed" }
 
-          # install dependancies
           npm install
+          if ($LASTEXITCODE -ne 0) { Write-Error "npm install failed"; exit 1 }
 
-          # restart the servy-managed dev server
           servy-cli restart --name="CalendarSite" --quiet
 
-          #verify service is running
           $status = servy-cli status --name="CalendarSite" --quiet
-          if ($status -notmach "Running") {
+          if ($status -notmatch "Running") {
             Write-Error "Dev server failed to start. Status: $status"
             exit 1
           }
 
-          Write-Host "Dev server restarted successfuly"
-      # - name: Checkout Repository
-      #   uses: actions/checkout@v4
-
-      # - name: Setup Node.js
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: 22 # Matches modern Next.js environments
-      #     cache: 'npm'     # Speeds up local builds by caching npm modules
-
-      # - name: Install Dependencies
-      #   run: npm ci
-
-      # - name: Build Next.js Site
-      #   run: npm run build
-      
-      # - name: Run Server
-      #   run: servy-cli restart --name="CalendarSite"
+          Write-Host "Dev server restarted successfully"
