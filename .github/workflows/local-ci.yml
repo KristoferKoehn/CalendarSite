@@ -26,3 +26,4 @@ jobs:
 
           Write-Host "Dev server restarted successfully"
           exit 0
+          
