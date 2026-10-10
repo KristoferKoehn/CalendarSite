@@ -13,40 +13,40 @@ jobs:
 
     steps:
       run: |
-          # Navigate to the live project folder
-          cd C:\Users\ferna\Documents\CalendarSite
+          # # Navigate to the live project folder
+          # cd C:\Users\ferna\Documents\CalendarSite
 
-          # pull latest changes
-          git pull origin main
+          # # pull latest changes
+          # git pull origin main
 
-          # install dependancies
-          npm install
+          # # install dependancies
+          # npm install
 
-          # restart the servy-managed dev server
-          servy-cli restart --name="CalendarSite" --quiet
+          # # restart the servy-managed dev server
+          # servy-cli restart --name="CalendarSite" --quiet
 
-          #verify service is running
-          $status = servy-cli status --name="CalendarSite" --quiet
-          if ($status -notmach "Running") {
-            Write-Error "Dev server failed to start. Status: $status"
-            exit 1
-          }
+          # #verify service is running
+          # $status = servy-cli status --name="CalendarSite" --quiet
+          # if ($status -notmach "Running") {
+          #   Write-Error "Dev server failed to start. Status: $status"
+          #   exit 1
+          # }
 
-          Write-Host "Dev server restarted successfuly"
-    #   - name: Checkout Repository
-    #     uses: actions/checkout@v4
+          # Write-Host "Dev server restarted successfuly"
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    #   - name: Setup Node.js
-    #     uses: actions/setup-node@v4
-    #     with:
-    #       node-version: 22 # Matches modern Next.js environments
-    #       cache: 'npm'     # Speeds up local builds by caching npm modules
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22 # Matches modern Next.js environments
+          cache: 'npm'     # Speeds up local builds by caching npm modules
 
-    #   - name: Install Dependencies
-    #     run: npm ci
+      - name: Install Dependencies
+        run: npm ci
 
-    #   - name: Build Next.js Site
-    #     run: npm run build
+      - name: Build Next.js Site
+        run: npm run build
       
-    #   - name: Run Server
-    #     run: servy-cli restart --name="CalendarSite"
+      - name: Run Server
+        run: servy-cli restart --name="CalendarSite"
