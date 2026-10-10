@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CalendarSite
 
-## Getting Started
+Appointment scheduling app. A Next.js frontend plus a separate backend that implements a shared contract.
 
-First, run the development server:
+## Prerequisites
+
+- Node.js 20.9+ (Node 22 recommended)
+- npm
+
+## Install
+
+```bash
+npm install
+```
+
+## Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Opens `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The frontend runs against an in-memory mock by default. Log in with:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `admin@example.com` / `password123`
+- `user@example.com` / `password123`
 
-## Learn More
+## Production
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+npm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`npm start` serves on port 80 at `http://localhost`. Port 80 must be free.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Connect to the real backend
 
-## Deploy on Vercel
+Copy `.env.example` to `.env.local` and set:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+When `NEXT_PUBLIC_API_URL` is set, the frontend calls the backend over HTTP. Set `NEXT_PUBLIC_USE_MOCK=true` to force the mock anyway.
+
+## Ports
+
+| Service | Dev | Production |
+|---|---|---|
+| Frontend | 3000 | 80 |
+| Backend REST + MCP | 4000 | 4000 |
+
+The backend serves the MCP endpoint at `POST /mcp` on the same port.
+
+## Scripts
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start the dev server on 3000 |
+| `npm run build` | Production build |
+| `npm start` | Serve the production build on 80 |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Run Vitest once |
+| `npm run test:watch` | Vitest in watch mode |
+| `npm run contract:generate` | Emit `contract/out/openapi.json` |
+
+## Contract
+
+- `backend-handoff.md`: backend-facing contract and implementation notes.
+- `api-contract.md`: API surface and authorization model.
+- `contract/out/openapi.json`: generated OpenAPI document for the backend.
+- `project.md`: full MVP specification.
