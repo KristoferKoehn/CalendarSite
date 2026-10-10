@@ -8,11 +8,10 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, windows]
+    runs-on: self-hosted
 
     steps:
       - name: Deploy and restart dev server
-        shell: pwsh
         run: |
           cd C:\Users\ferna\Documents\CalendarSite
 
