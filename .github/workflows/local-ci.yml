@@ -13,7 +13,7 @@ jobs:
 
     steps:
       run: |
-          # Navigate to the live project folder
+          # Navigate to the live project foldersss
           cd C:\Users\ferna\Documents\CalendarSite
 
           # pull latest changes
@@ -23,9 +23,9 @@ jobs:
           npm install
 
           # restart the servy-managed dev server
-          servy-cli restart --name="CalendarSite2" --quiet
+          servy-cli restart --name="CalendarSite" --quiet
 
-          #verify sservice is running
+          #verify service is running
           $status = servy-cli status --name="CalendarSite" --quiet
           if ($status -notmach "Running") {
             Write-Error "Dev server failed to start. Status: $status"
