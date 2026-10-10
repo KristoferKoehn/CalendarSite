@@ -1,1 +1,2 @@
-npm run dev
+@echo off
+call npm run dev
