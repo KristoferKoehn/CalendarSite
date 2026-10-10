@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Deploy and restart dev server
-        run: |
+        run: | 
           cd C:\Users\ferna\Documents\CalendarSite
 
           git pull origin main
