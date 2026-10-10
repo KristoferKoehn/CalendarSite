@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     # Tells GitHub to send this job to your local machine's runner test test ttt
-    runs-on: FrontEndRunner
+    runs-on: self-hosted
 
     steps:
       run: |
