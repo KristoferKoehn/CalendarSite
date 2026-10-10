@@ -1,2 +1,2 @@
 @echo off
-call npm run prod
+call npm run start
