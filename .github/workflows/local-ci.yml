@@ -13,7 +13,7 @@ jobs:
 
     steps:
       run: |
-          # Navigate to the live project foldersss
+          # Navigate to the live project folder
           cd C:\Users\ferna\Documents\CalendarSite
 
           # pull latest changes
