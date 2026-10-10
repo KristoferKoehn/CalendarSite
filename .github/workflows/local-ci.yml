@@ -21,9 +21,9 @@ jobs:
           npm install
           if ($LASTEXITCODE -ne 0) { Write-Error "npm install failed"; exit 1 }
 
-          servy-cli restart --name="CalendarSite" --quiet
+          servy-cli restart --name='CalendarSite' --quiet
 
-          $status = servy-cli status --name="CalendarSite" --quiet
+          $status = servy-cli status --name='CalendarSite' --quiet
           if ($status -notmatch "Running") {
             Write-Error "Dev server failed to start. Status: $status"
             exit 1
