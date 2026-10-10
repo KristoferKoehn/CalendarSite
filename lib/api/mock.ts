@@ -38,6 +38,17 @@ type MockSession = {
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
+// `crypto.randomUUID()` is only exposed in secure contexts (HTTPS or localhost).
+// Over plain HTTP on a LAN IP it is undefined, which broke seeding for remote
+// devices. Build v4 UUIDs from `crypto.getRandomValues()`, available everywhere.
+function randomUUID(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10xx
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export class MockApiClient implements ApiClient {
   private readonly users = new Map<string, MockUser>();
   private readonly sessions = new Map<string, MockSession>();
@@ -82,7 +93,7 @@ export class MockApiClient implements ApiClient {
       }));
     }
 
-    const token = crypto.randomUUID();
+    const token = randomUUID();
     const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
     this.sessions.set(token, { token, userId: user.id, expiresAt });
     this.tokenStore.set(token);
@@ -116,7 +127,7 @@ export class MockApiClient implements ApiClient {
     }
 
     const resource: Resource = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       name: parsed.data.name,
       description: parsed.data.description ?? null,
       timezone: parsed.data.timezone ?? "America/Los_Angeles",
@@ -231,7 +242,7 @@ export class MockApiClient implements ApiClient {
 
     const now = new Date().toISOString();
     const appointment: Appointment = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       userId: user.value.id,
       resourceId: resource.id,
       startAt: startUtc.toISOString(),
@@ -426,7 +437,7 @@ export class MockApiClient implements ApiClient {
 
   private addUser(email: string, password: string, role: Role): MockUser {
     const user: MockUser = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       email,
       password,
       role,
@@ -439,7 +450,7 @@ export class MockApiClient implements ApiClient {
 
   private addResource(name: string, description: string): void {
     const resource: Resource = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       name,
       description,
       timezone: "America/Los_Angeles",
