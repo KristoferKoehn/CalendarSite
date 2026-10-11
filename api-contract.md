@@ -16,6 +16,8 @@
 - Admin UI is role-gated inside the web app. There is no separate admin app.
 - Resources are created by admins.
 - Role is a backend authorization concern. URLs do not contain an `/admin/` prefix.
+- The frontend calls the backend directly from the browser with CORS. The bearer token is stored in `localStorage`.
+- Folder layout is root-level `contract/` and `lib/`.
 
 ## Authorization model
 
@@ -101,8 +103,3 @@ Codes: `INVALID_INPUT`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`,
 - Nonexistent local times (spring-forward) return `INVALID_INPUT`.
 - Ambiguous local times (fall-back) return `INVALID_INPUT`.
 - `endTime` must be strictly after `startTime`.
-
-## Open decisions
-
-- Token storage: direct client-to-backend calls with CORS, or an httpOnly cookie via a Next.js BFF proxy.
-- Folder layout: root-level `contract/` and `lib/`, or both under `src/`.
