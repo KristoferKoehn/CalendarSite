@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: self-hosted
+    env:
+      NEXT_PUBLIC_API_URL: http://couchcollective.software:4000
 
     steps:
       - name: Deploy and restart dev server

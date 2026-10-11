@@ -10,14 +10,7 @@ export { HttpApiClient } from "./http";
 
 export function createApiClient(): ApiClient {
   const tokenStore = createTokenStore();
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  if (!baseUrl) {
-    throw new Error(
-      "NEXT_PUBLIC_API_URL is required. The in-memory mock was removed.",
-    );
-  }
-
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
   return new HttpApiClient({ baseUrl, tokenStore });
 }
 

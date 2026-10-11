@@ -198,6 +198,14 @@ export class HttpApiClient implements ApiClient {
   }
 
   private async request<T>(options: RequestOptions<T>): Promise<Result<T, ApiError>> {
+    if (!this.deps.baseUrl) {
+      return err(
+        new ApiError(ErrorCodes.INTERNAL, "NEXT_PUBLIC_API_URL is not configured", {
+          status: 0,
+        }),
+      );
+    }
+
     const url = new URL(options.path, this.deps.baseUrl);
 
     if (options.query) {
