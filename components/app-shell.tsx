@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             Appointments
           </Link>
           {user?.role === "admin" && (
-            <Link href="/admin/users" className="hover:underline">
+            <Link href="/users" className="hover:underline">
               Admin
             </Link>
           )}
