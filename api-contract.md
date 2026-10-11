@@ -5,7 +5,7 @@
 - The frontend is built first. CalendarSite is the Next.js client.
 - The backend is a separate service written in a non-TypeScript, non-JavaScript language.
 - The contract is the single source of truth between the two. It is emitted as an OpenAPI document generated from the frontend's Zod schemas.
-- The frontend develops against a mock implementation of the contract until the backend exists.
+- The frontend calls the backend directly through an HTTP client typed against the contract.
 - MCP over HTTP (`POST /mcp`) is backend-only. The frontend consumes the REST API only.
 
 ## Locked decisions

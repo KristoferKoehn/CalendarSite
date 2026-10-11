@@ -1,6 +1,6 @@
 # CalendarSite Project Index
 
-Single-page summary: CalendarSite is a Next.js App Router frontend for an appointment scheduling system. The UI codes against one typed `ApiClient` interface with two implementations, an in-memory mock (default) and an HTTP client. The API shape is defined once in `contract/` as Zod schemas and emitted as OpenAPI for a separate non-TypeScript backend. The frontend consumes REST only; MCP (`POST /mcp`) is backend-only.
+Single-page summary: CalendarSite is a Next.js App Router frontend for an appointment scheduling system. The UI codes against one typed `ApiClient` interface backed by an HTTP client. The API shape is defined once in `contract/` as Zod schemas and emitted as OpenAPI for a separate non-TypeScript backend. The frontend consumes REST only; MCP (`POST /mcp`) is backend-only.
 
 ## Read this first
 
@@ -8,7 +8,6 @@ Single-page summary: CalendarSite is a Next.js App Router frontend for an appoin
 |---|---|
 | Where is the API shape defined? | `contract/schemas/*.ts` |
 | Where is the REST client? | `lib/api/http.ts` |
-| Where is the in-memory backend? | `lib/api/mock.ts` |
 | Where is auth/session state? | `lib/session/session-context.tsx` |
 | Where is timezone logic? | `lib/time.ts` |
 | Where are the pages/routes? | `app/` |
@@ -29,13 +28,13 @@ Single-page summary: CalendarSite is a Next.js App Router frontend for an appoin
 | Feature | Primary files |
 |---|---|
 | Login / register / me / logout | `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`, `lib/session/session-context.tsx`, `lib/api/session.ts`, `contract/schemas/auth.ts` |
-| Appointments: create/list/cancel/reschedule | `app/(app)/appointments/**`, `components/appointment-form.tsx`, `contract/schemas/appointments.ts`, `lib/api/mock.ts`, `lib/api/http.ts` |
+| Appointments: create/list/cancel/reschedule | `app/(app)/appointments/**`, `components/appointment-form.tsx`, `contract/schemas/appointments.ts`, `lib/api/http.ts` |
 | Resources: list/create/edit/deactivate | `app/(app)/resources/page.tsx`, `components/resource-form.tsx`, `contract/schemas/resources.ts` |
 | Admin user management (role/isAgent) | `app/(admin)/users/page.tsx`, `components/user-table.tsx`, `contract/schemas/users.ts` |
 | Route protection / redirects | `components/route-guard.tsx`, `app/(app)/layout.tsx`, `app/(admin)/layout.tsx` |
 | Error envelope + messages | `contract/errors.ts`, `lib/api/errors.ts`, `lib/api/error-message.ts`, `components/error-banner.tsx` |
 | Seattle <-> UTC conversion and formatting | `lib/time.ts`, `contract/schemas/common.ts` |
-| Mock vs HTTP backend switch | `lib/api/index.ts`, `.env.example` |
+| HTTP client selection | `lib/api/index.ts`, `.env.example` |
 
 ## Architecture
 
@@ -44,14 +43,14 @@ app/* pages + components/*        (UI, client components)
         |
         v  useSession() / getApiClient()
 lib/session/session-context.tsx   (auth state)
-lib/api/                          (ApiClient interface + Http/Mock impls)
+lib/api/                          (ApiClient interface + HTTP implementation)
         |
         v  Zod schemas for validation
 contract/schemas/*.ts             (single source of truth for types/shapes)
 ```
 
 - `lib/api/client.ts` defines the `ApiClient` interface; every UI call goes through it.
-- `lib/api/index.ts` picks `MockApiClient` or `HttpApiClient` based on `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_USE_MOCK`.
+- `lib/api/index.ts` builds the HTTP client from `NEXT_PUBLIC_API_URL` and throws if it is missing.
 - `contract/` has no runtime I/O; it is pure schema + type definitions.
 - There is no backend code in this repo. `backend-handoff.md` is the spec for the separate backend.
 
@@ -64,13 +63,13 @@ contract/schemas/*.ts             (single source of truth for types/shapes)
 | `project.md` | Full MVP spec: data model, auth rules, timezone rules, MCP tools, acceptance criteria. Source of truth for scope. |
 | `api-contract.md` | REST API surface, authorization model, error codes, datetime contract. |
 | `backend-handoff.md` | Backend-facing contract: locked decisions, endpoint tables, object shapes, seed parity, ports, CORS. |
-| `readme.md` | Setup, scripts, ports, mock login credentials, how to point at a real backend. |
+| `readme.md` | Setup, scripts, ports, seed credentials, backend configuration. |
 | `package.json` | Scripts and deps. Next 16.4, React 19.3, zod 3, vitest, tsx, zod-to-openapi. |
 | `next.config.ts` | `cacheComponents`, `partialPrefetching`, `allowedDevOrigins`, Tailwind Turbopack rule. |
 | `tsconfig.json` | Strict mode; `@/*` alias maps to repo root. |
 | `vitest.config.ts` | Node test env; `@` alias for Vitest. |
 | `eslint.config.mjs` | Flat ESLint config (Next defaults). |
-| `.env.example` | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_USE_MOCK`. |
+| `.env.example` | `NEXT_PUBLIC_API_URL`. |
 | `startup.bat` | Runs `npm run start` (production serve on port 80). |
 | `AGENTS.md` | Auto-generated Next.js agent rules; points at `node_modules/next/dist/docs/`. |
 
@@ -91,7 +90,7 @@ Route groups `(auth)`, `(app)`, `(admin)` do not affect URLs.
 | `/appointments/[id]/reschedule` | `app/(app)/appointments/[id]/reschedule/page.tsx`, `reschedule-content.tsx` | Reschedule form. |
 | `/resources` | `app/(app)/resources/page.tsx` | Lists resources; admin create/edit/deactivate inline. |
 | admin layout | `app/(admin)/layout.tsx` | `RouteGuard requireAdmin` + `AppShell`. |
-| `/admin/users` | `app/(admin)/users/page.tsx` | Admin user management. |
+| `/users` | `app/(admin)/users/page.tsx` | Admin user management. |
 
 ### components/
 
@@ -128,8 +127,7 @@ Route groups `(auth)`, `(app)`, `(admin)` do not affect URLs.
 |---|---|
 | `api/client.ts` | `ApiClient` interface; the contract every UI call codes against. |
 | `api/http.ts` | `HttpApiClient`; REST calls, bearer auth, response parsing, error envelope handling. |
-| `api/mock.ts` | `MockApiClient`; in-memory implementation, seed data, overlap logic. |
-| `api/index.ts` | `createApiClient`/`getApiClient`; selects mock vs HTTP. |
+| `api/index.ts` | `createApiClient`/`getApiClient`; builds the HTTP client from env. |
 | `api/session.ts` | `createTokenStore`; token in `localStorage`. |
 | `api/errors.ts` | `ApiError` class (code, message, status, details). |
 | `api/error-message.ts` | `errorMessage()`; human-readable fallback per error code. |
@@ -148,20 +146,18 @@ Route groups `(auth)`, `(app)`, `(admin)` do not affect URLs.
 
 | File | Purpose |
 |---|---|
-| `mock.test.ts` | Mock client behavior: auth, appointments, overlap, authorization. |
 | `schemas.test.ts` | Zod schema validation edge cases. |
 | `time.test.ts` | Seattle timezone conversion and formatting. |
 
 ## Key invariants and gotchas
 
-- Mock is the default. Real backend is used only when `NEXT_PUBLIC_API_URL` is set and `NEXT_PUBLIC_USE_MOCK` is not `"true"`.
-- Seed parity (mock and backend must match): `admin@example.com` / `password123` (admin), `user@example.com` / `password123` (user), resources `Room A` and `Room B`, both active.
+- The frontend requires `NEXT_PUBLIC_API_URL`; `createApiClient` throws if it is missing.
+- Seed parity: `admin@example.com` / `password123` (admin), `user@example.com` / `password123` (user), resources `Room A` and `Room B`, both active.
 - Timezone: input is `date` + `startTime`/`endTime` in `America/Los_Angeles`; storage is UTC; responses include both UTC and local ISO fields.
 - Error envelope: `{ "error": { "code", "message", "details"? } }`.
 - Overlap is half-open `[startAt, endAt)`, per resource, booked appointments only.
 - Cancel is a soft delete (status `cancelled`); resource delete is deactivation (`active: false`).
 - There is no `GET /appointments/{id}`. The reschedule page lists appointments and finds the target locally.
-- The mock keeps sessions and data in memory; a page reload loses non-seed data.
 
 ## Regenerate the contract
 

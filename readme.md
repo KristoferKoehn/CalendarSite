@@ -6,6 +6,7 @@ Appointment scheduling app. A Next.js frontend plus a separate backend that impl
 
 - Node.js 20.9+ (Node 22 recommended)
 - npm
+- A running CalendarBackend instance (REST on port 4000)
 
 ## Install
 
@@ -21,10 +22,7 @@ npm run dev
 
 Opens `http://localhost:3000`.
 
-The frontend runs against an in-memory mock by default. Log in with:
-
-- `admin@example.com` / `password123`
-- `user@example.com` / `password123`
+The frontend calls the backend configured by `NEXT_PUBLIC_API_URL`. Set it in `.env.local` before starting. If it is missing, the app fails at startup.
 
 ## Production
 
@@ -43,20 +41,17 @@ them:
 - Dev: `http://<your-lan-ip>:3000`
 - Production: `http://<your-lan-ip>` (port 80)
 
-No backend is needed while `NEXT_PUBLIC_USE_MOCK=true`; the mock runs entirely in
-the browser. For access from outside the LAN, forward the port on the router and
-allow it through the Windows firewall.
+For access from outside the LAN, forward the port on the router and allow it through the Windows firewall.
 
-## Connect to the real backend
+## Configure the backend
 
-The repo ships in stub mode: the in-memory mock is active and the API URL
-already points at the planned backend (`http://couchcollective.software:4000`).
-`NEXT_PUBLIC_USE_MOCK=true` keeps the mock active, so nothing fails before the
-backend exists.
+Set the backend URL in `.env.local`:
 
-When the backend is live, set `NEXT_PUBLIC_USE_MOCK=false` in `.env.local` and
-rebuild. `NEXT_PUBLIC_*` values are inlined at build time, so run
-`npm run build` after changing them.
+```
+NEXT_PUBLIC_API_URL=http://couchcollective.software:4000
+```
+
+`NEXT_PUBLIC_*` values are inlined at build time, so run `npm run build` after changing them.
 
 ## Ports
 

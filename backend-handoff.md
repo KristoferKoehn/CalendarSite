@@ -4,7 +4,7 @@
 
 This document is the contract between the CalendarSite frontend and the backend. The backend is written in a non-TypeScript, non-JavaScript language.
 
-The frontend was built against an in-memory mock that implements this contract. The backend replaces the mock without changing the frontend.
+The frontend calls this contract through an HTTP client. The backend implements the contract without changing the frontend.
 
 ## Source of truth
 
@@ -197,7 +197,7 @@ The overlap invariant must be enforced at the database level with the PostgreSQL
 
 ## Dev seed parity
 
-The frontend mock seeds these values. Seed the backend the same way for a frictionless first connection:
+Seed the backend with these values for a frictionless first connection:
 
 - `admin@example.com` / `password123`, role `admin`.
 - `user@example.com` / `password123`, role `user`.
