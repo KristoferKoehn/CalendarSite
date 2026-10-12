@@ -26,8 +26,8 @@ The OpenAPI document is the authoritative machine contract. This file summarizes
 - Resources are created by admins.
 - The frontend stores the token and calls the backend directly over HTTP.
 - `from` and `to` on `GET /appointments` are calendar dates in America/Los_Angeles.
-- Frontend dev origin: `http://localhost:3000`. Frontend production origin: `http://couchcollective.software`.
-- Backend serves REST and MCP on port `4000`.
+- Frontend serves on `http://127.0.0.1:3000` for both `dev` and `start`.
+- Backend serves REST and MCP on `127.0.0.1:4001`.
 
 ## API surface
 
@@ -212,8 +212,7 @@ Seed the backend with these values for a frictionless first connection:
 
 ## Ports and origins
 
-- Frontend dev server: `http://localhost:3000` on the host, `http://192.168.1.169:3000` on the LAN (binds `0.0.0.0`).
-- Frontend production server: `http://couchcollective.software` (port 80).
-- Backend REST and MCP: `http://couchcollective.software:4000`. MCP is `POST /mcp` on the same service.
-- The backend CORS allowlist must include `http://localhost:3000`, `http://couchcollective.software`, and `http://192.168.1.169`.
-- The frontend points at the backend with `NEXT_PUBLIC_API_URL=http://couchcollective.software:4000`.
+- Frontend dev and start: `http://127.0.0.1:3000` (loopback only).
+- Backend REST and MCP: `http://127.0.0.1:4001`. MCP is `POST /mcp` on the same service.
+- The backend CORS allowlist includes `http://localhost:3000`, `http://127.0.0.1:3000`, `http://couchcollective.software`, and `http://192.168.1.169`.
+- The frontend points at the backend with `NEXT_PUBLIC_API_URL=http://127.0.0.1:4001`.

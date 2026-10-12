@@ -70,7 +70,7 @@ contract/schemas/*.ts             (single source of truth for types/shapes)
 | `vitest.config.ts` | Node test env; `@` alias for Vitest. |
 | `eslint.config.mjs` | Flat ESLint config (Next defaults). |
 | `.env.example` | `NEXT_PUBLIC_API_URL`. |
-| `startup.bat` | Runs `npm run start` (production serve on port 80). |
+| `startup.bat` | Runs `npm run start` (production serve on `127.0.0.1:3000`). |
 | `AGENTS.md` | Auto-generated Next.js agent rules; points at `node_modules/next/dist/docs/`. |
 
 ### app/ (Next.js App Router)
