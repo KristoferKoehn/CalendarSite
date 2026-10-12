@@ -27,3 +27,10 @@ export const updateUserInputSchema = z
     message: "at least one of role or isAgent is required",
   });
 export type UpdateUserInput = z.infer<typeof updateUserInputSchema>;
+
+/**
+ * `DELETE /auth/me` and `DELETE /users/{id}` both return the deleted user.
+ * Deleting an account leaves its appointments in place.
+ */
+export const deleteSelfOutputSchema = userSchema;
+export type DeleteSelfOutput = z.infer<typeof deleteSelfOutputSchema>;

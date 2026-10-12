@@ -1,5 +1,6 @@
 import {
   ErrorCodes,
+  appointmentDeleteOutputSchema,
   appointmentListOutputSchema,
   appointmentSchema,
   errorEnvelopeSchema,
@@ -11,6 +12,7 @@ import {
   userSchema,
   type Appointment,
   type AppointmentCreateInput,
+  type AppointmentDeleteOutput,
   type AppointmentListQuery,
   type AppointmentRescheduleInput,
   type CreateResourceInput,
@@ -80,6 +82,18 @@ export class HttpApiClient implements ApiClient {
       auth: true,
       schema: userSchema,
     });
+  }
+
+  async deleteAccount(): Promise<Result<User, ApiError>> {
+    const result = await this.request({
+      method: "DELETE",
+      path: "/auth/me",
+      auth: true,
+      schema: userSchema,
+    });
+    // The token is worthless once the account is gone.
+    if (result.ok) this.deps.tokenStore.clear();
+    return result;
   }
 
   async listResources(): Promise<Result<Resource[], ApiError>> {
@@ -206,6 +220,15 @@ export class HttpApiClient implements ApiClient {
       body: input,
       auth: true,
       schema: appointmentSchema,
+    });
+  }
+
+  async deleteAppointment(id: string): Promise<Result<AppointmentDeleteOutput, ApiError>> {
+    return this.request({
+      method: "DELETE",
+      path: `/appointments/${encodeURIComponent(id)}`,
+      auth: true,
+      schema: appointmentDeleteOutputSchema,
     });
   }
 

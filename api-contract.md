@@ -53,6 +53,12 @@
 | POST | `/auth/register` | public | create user |
 | POST | `/auth/login` | public | return bearer token and `expiresAt` |
 | GET | `/auth/me` | authenticated | return `id`, `email`, `role`, `isAgent` |
+| DELETE | `/auth/me` | authenticated | delete your own account |
+
+`DELETE /auth/me` exists because `DELETE /users/:id` is admin-only: without it a
+non-admin could never delete themselves, and relaxing that role check would let any
+user delete anybody. The account's appointments are left in place. The last
+remaining admin cannot delete themselves.
 
 ### Resources
 
@@ -79,6 +85,11 @@
 | GET | `/appointments` | authenticated | list all appointments, filterable |
 | POST | `/appointments/:id/cancel` | owner or admin | cancel appointment |
 | POST | `/appointments/:id/reschedule` | owner or admin | reschedule appointment |
+| DELETE | `/appointments/:id` | admin only | permanently delete an appointment |
+
+`DELETE /appointments/:id` erases the row rather than cancelling it, so it is
+restricted to admins. It is the way to clear appointments whose owner account has
+been deleted — deleting an account leaves its appointments behind.
 
 ## Response shapes
 

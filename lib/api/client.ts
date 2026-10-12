@@ -1,9 +1,11 @@
 import type {
   Appointment,
   AppointmentCreateInput,
+  AppointmentDeleteOutput,
   AppointmentListQuery,
   AppointmentRescheduleInput,
   CreateResourceInput,
+  DeleteSelfOutput,
   LoginInput,
   LoginOutput,
   RegisterInput,
@@ -21,6 +23,8 @@ export interface ApiClient {
   login(input: LoginInput): Promise<Result<LoginOutput, ApiError>>;
   logout(): void;
   me(): Promise<Result<User, ApiError>>;
+  /** Delete the caller's own account. Their appointments are left in place. */
+  deleteAccount(): Promise<Result<DeleteSelfOutput, ApiError>>;
 
   listResources(): Promise<Result<Resource[], ApiError>>;
   createResource(input: CreateResourceInput): Promise<Result<Resource, ApiError>>;
@@ -38,4 +42,6 @@ export interface ApiClient {
     id: string,
     input: AppointmentRescheduleInput,
   ): Promise<Result<Appointment, ApiError>>;
+  /** Permanently delete an appointment. Admin-only. */
+  deleteAppointment(id: string): Promise<Result<AppointmentDeleteOutput, ApiError>>;
 }

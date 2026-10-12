@@ -170,7 +170,9 @@ Route groups `(auth)`, `(app)`, `(admin)` do not affect URLs.
 - Overlap is half-open `[startAt, endAt)`, per resource, booked appointments only —
   enforced by the **backend and PostgreSQL**, not in this repo.
 - Cancel is a soft delete (status `cancelled`); resource delete is deactivation (`active: false`).
-- `DELETE /users/{id}` is a hard delete; the API refuses it for yourself, the last admin, or a user with appointments.
+- `DELETE /users/{id}` is a hard delete; the API refuses it for yourself or the last admin. It **leaves the user's appointments in place** — an admin clears those with `DELETE /appointments/{id}`.
+- `DELETE /auth/me` lets any user delete their own account. `DELETE /appointments/{id}` is admin-only.
+- Appointments carry `ownerEmail` so they remain meaningful after their owner is deleted; `userId` may then match no user.
 - There is no `GET /appointments/{id}`. The reschedule page lists appointments and finds the target locally.
 - Every page is a client component except the two thin `Suspense` shells for
   `/appointments/new` and `/appointments/[id]/reschedule`.

@@ -4,6 +4,7 @@ import { errorEnvelopeSchema } from "../errors";
 import { uuidSchema } from "../schemas/common";
 import {
   appointmentCreateInputSchema,
+  appointmentDeleteOutputSchema,
   appointmentListOutputSchema,
   appointmentListQuerySchema,
   appointmentRescheduleInputSchema,
@@ -141,6 +142,37 @@ export function registerAppointmentPaths(registry: OpenAPIRegistry): void {
       },
       409: {
         description: "Overlapping booking or already cancelled",
+        content: { "application/json": { schema: errorEnvelopeSchema } },
+      },
+    },
+  });
+
+  registry.registerPath({
+    method: "delete",
+    path: "/appointments/{id}",
+    summary: "Permanently delete an appointment (admin only)",
+    description:
+      "Erases the appointment rather than cancelling it. Restricted to admins. This is how appointments belonging to a deleted account are cleared; deleting an account leaves its appointments in place.",
+    tags: ["appointments"],
+    security: [{ bearerAuth: [] }],
+    request: {
+      params: z.object({ id: uuidSchema }),
+    },
+    responses: {
+      200: {
+        description: "Deleted",
+        content: { "application/json": { schema: appointmentDeleteOutputSchema } },
+      },
+      401: {
+        description: "Unauthenticated",
+        content: { "application/json": { schema: errorEnvelopeSchema } },
+      },
+      403: {
+        description: "Admin only",
+        content: { "application/json": { schema: errorEnvelopeSchema } },
+      },
+      404: {
+        description: "Appointment not found",
         content: { "application/json": { schema: errorEnvelopeSchema } },
       },
     },

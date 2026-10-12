@@ -57,6 +57,12 @@ export type AppointmentListQuery = z.infer<typeof appointmentListQuerySchema>;
 export const appointmentSchema = z.object({
   id: uuidSchema,
   userId: uuidSchema,
+  /**
+   * The owner's email, captured when the appointment was created. It is
+   * denormalised so the appointment stays meaningful after the owner's account
+   * is deleted — `userId` is then a historical reference that may match no user.
+   */
+  ownerEmail: z.string(),
   resourceId: uuidSchema,
   title: appointmentTitleSchema,
   description: appointmentDescriptionSchema,
@@ -75,3 +81,9 @@ export const appointmentListOutputSchema = z.object({
   appointments: z.array(appointmentSchema),
 });
 export type AppointmentListOutput = z.infer<typeof appointmentListOutputSchema>;
+
+export const appointmentDeleteOutputSchema = z.object({
+  status: z.literal("deleted"),
+  id: uuidSchema,
+});
+export type AppointmentDeleteOutput = z.infer<typeof appointmentDeleteOutputSchema>;

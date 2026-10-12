@@ -1,10 +1,91 @@
 import { describe, expect, it } from "vitest";
 import {
   appointmentCreateInputSchema,
+  appointmentDeleteOutputSchema,
   appointmentListQuerySchema,
+  appointmentSchema,
   errorEnvelopeSchema,
   loginInputSchema,
+  userSchema,
 } from "@/contract";
+
+describe("appointmentSchema", () => {
+  const valid = {
+    id: "3f2a7c1b-0000-4000-8000-000000000001",
+    userId: "3f2a7c1b-0000-4000-8000-000000000002",
+    ownerEmail: "booker@example.com",
+    resourceId: "3f2a7c1b-0000-4000-8000-000000000003",
+    title: "Standup",
+    description: "Daily sync",
+    startAt: "2026-10-10T21:00:00Z",
+    endAt: "2026-10-10T22:00:00Z",
+    startAtLocal: "2026-10-10T14:00:00-07:00",
+    endAtLocal: "2026-10-10T15:00:00-07:00",
+    status: "booked",
+    createdAt: "2026-10-01T00:00:00Z",
+    updatedAt: "2026-10-01T00:00:00Z",
+    cancelledAt: null,
+  };
+
+  it("accepts a full appointment", () => {
+    expect(appointmentSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("requires ownerEmail, since it outlives the owner account", () => {
+    const { ownerEmail: _omitted, ...withoutOwner } = valid;
+    expect(appointmentSchema.safeParse(withoutOwner).success).toBe(false);
+  });
+
+  it("accepts an ownerEmail that no longer matches any user", () => {
+    expect(
+      appointmentSchema.safeParse({ ...valid, ownerEmail: "deleted@example.com" }).success,
+    ).toBe(true);
+  });
+
+  it("accepts a cancelled appointment with cancelledAt set", () => {
+    expect(
+      appointmentSchema.safeParse({
+        ...valid,
+        status: "cancelled",
+        cancelledAt: "2026-10-05T00:00:00Z",
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe("appointmentDeleteOutputSchema", () => {
+  it("accepts the delete response", () => {
+    expect(
+      appointmentDeleteOutputSchema.safeParse({
+        status: "deleted",
+        id: "3f2a7c1b-0000-4000-8000-000000000001",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects an unexpected status", () => {
+    expect(
+      appointmentDeleteOutputSchema.safeParse({
+        status: "cancelled",
+        id: "3f2a7c1b-0000-4000-8000-000000000001",
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("userSchema", () => {
+  it("accepts a user", () => {
+    expect(
+      userSchema.safeParse({
+        id: "3f2a7c1b-0000-4000-8000-000000000002",
+        email: "user@example.com",
+        role: "user",
+        isAgent: false,
+        createdAt: "2026-10-01T00:00:00Z",
+      }).success,
+    ).toBe(true);
+  });
+});
 
 describe("appointmentCreateInputSchema", () => {
   const valid = {

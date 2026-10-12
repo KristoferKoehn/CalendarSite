@@ -78,4 +78,28 @@ export function registerAuthPaths(registry: OpenAPIRegistry): void {
       },
     },
   });
+
+  registry.registerPath({
+    method: "delete",
+    path: "/auth/me",
+    summary: "Delete your own account",
+    description:
+      "Lets any authenticated user remove their own account. DELETE /users/{id} is admin-only, so without this a non-admin could never delete themselves. The account's appointments are left in place. The last remaining admin cannot delete themselves.",
+    tags: ["auth"],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        description: "The deleted user",
+        content: { "application/json": { schema: userSchema } },
+      },
+      401: {
+        description: "Missing or expired token",
+        content: { "application/json": { schema: errorEnvelopeSchema } },
+      },
+      409: {
+        description: "Cannot delete the last admin",
+        content: { "application/json": { schema: errorEnvelopeSchema } },
+      },
+    },
+  });
 }

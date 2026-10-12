@@ -51,8 +51,12 @@ Authorization values: `public`, `user`, `admin`, or `owner or admin`.
 | POST | `/auth/register` | public | `{ "email": string, "password": string }` | `201` `{ "userId": string }` |
 | POST | `/auth/login` | public | `{ "email": string, "password": string }` | `200` `{ "token": string, "expiresAt": string }` |
 | GET | `/auth/me` | user | none | `200` `User` |
+| DELETE | `/auth/me` | user | none | `200` `User` (the deleted user) |
 
 `register` returns only `userId`. The frontend then calls `login` itself.
+
+`DELETE /auth/me` lets any authenticated user remove their own account. Their
+appointments are left in place. `409 CONFLICT` if they are the last admin.
 
 ### Resources
 
@@ -75,7 +79,7 @@ Authorization values: `public`, `user`, `admin`, or `owner or admin`.
 
 At least one of `role` or `isAgent` is required.
 
-`DELETE` removes the user row. It returns `409 CONFLICT` when the target is the caller, is the last remaining admin, or has any appointment.
+`DELETE` removes the user row and **leaves the user's appointments in place**. It returns `409 CONFLICT` when the target is the caller or is the last remaining admin. It no longer conflicts on "user has appointments" — clear those with `DELETE /appointments/{id}`. A non-admin deleting themselves uses `DELETE /auth/me` instead.
 
 ### Appointments
 
@@ -85,6 +89,10 @@ At least one of `role` or `isAgent` is required.
 | GET | `/appointments` | user | query: `resourceId?`, `userId?`, `title?`, `from?`, `to?`, `status?` | `200` `{ "appointments": Appointment[] }` |
 | POST | `/appointments/{id}/cancel` | owner or admin | none | `200` `Appointment` |
 | POST | `/appointments/{id}/reschedule` | owner or admin | `{ "title": string, "description"?: string, "date": string, "startTime": string, "endTime": string }` | `200` `Appointment` |
+| DELETE | `/appointments/{id}` | admin | none | `200` `{ "status": "deleted", "id": string }` |
+
+`DELETE /appointments/{id}` is a hard delete and is admin-only. It is how
+appointments belonging to a deleted account are cleared.
 
 ## Object shapes
 
@@ -121,6 +129,7 @@ At least one of `role` or `isAgent` is required.
 {
   "id": "uuid",
   "userId": "uuid",
+  "ownerEmail": "string",
   "resourceId": "uuid",
   "title": "string",
   "description": "string",
@@ -134,6 +143,22 @@ At least one of `role` or `isAgent` is required.
   "cancelledAt": "ISO UTC | null"
 }
 ```
+
+`ownerEmail` is the owner's email, captured when the appointment was created. It is
+required and always present. It exists so an appointment stays meaningful after its
+owner's account is deleted, at which point `userId` is a historical reference that
+may match no user — treat `userId` as *possibly dangling* and `ownerEmail` as the
+reliable label.
+
+## Deleting users and appointments
+
+- `DELETE /users/{id}` (admin) **hard-deletes the account and leaves its
+  appointments in place.** It no longer conflicts on "user has appointments".
+- It still returns `409` when the target is the caller or the last remaining admin.
+- A non-admin cannot delete another user (`403`); they delete *themselves* with
+  `DELETE /auth/me`.
+- To clear the appointments left behind, an admin calls
+  `DELETE /appointments/{id}`.
 
 ## Response shapes
 
@@ -161,7 +186,7 @@ At least one of `role` or `isAgent` is required.
 | `UNAUTHENTICATED` | 401 | missing or expired token, wrong email or password |
 | `FORBIDDEN` | 403 | wrong role or not the owner |
 | `NOT_FOUND` | 404 | missing user, resource, or appointment, or inactive resource |
-| `CONFLICT` | 409 | overlapping booking, duplicate email, already cancelled, delete self/last admin/user with appointments |
+| `CONFLICT` | 409 | overlapping booking, duplicate email, already cancelled, delete self / last admin |
 | `INTERNAL` | 500 | unexpected errors |
 
 ## Authentication
@@ -220,9 +245,10 @@ the Go backend against `project.md` section 8 using the same core services:
   session-id header; the "Streamable HTTP" session pattern was not implemented.
 - Methods: `initialize` (advertises protocol version `2024-11-05`), `tools/list`,
   `tools/call`, and `ping`.
-- Tools, exactly seven: `auth.register` and `auth.login` (public), plus
+- Tools, exactly eight: `auth.register` and `auth.login` (public), plus
   `resources.list`, `appointments.create`, `appointments.cancel`,
-  `appointments.reschedule`, and `appointments.list` (bearer auth).
+  `appointments.reschedule`, `appointments.list`, and `appointments.delete`
+  (bearer auth; `appointments.delete` is admin-only).
 - Contract errors map to JSON-RPC error code `-32000` with the contract code in
   `error.data.code`.
 
