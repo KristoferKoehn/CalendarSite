@@ -70,10 +70,10 @@ At least one of `role` or `isAgent` is required.
 
 | Method | Path | Access | Request | Response |
 |---|---|---|---|---|
-| POST | `/appointments` | user | `{ "resourceId": string, "date": string, "startTime": string, "endTime": string }` | `201` `Appointment` |
-| GET | `/appointments` | user | query: `resourceId?`, `userId?`, `from?`, `to?`, `status?` | `200` `{ "appointments": Appointment[] }` |
+| POST | `/appointments` | user | `{ "resourceId": string, "title": string, "description"?: string, "date": string, "startTime": string, "endTime": string }` | `201` `Appointment` |
+| GET | `/appointments` | user | query: `resourceId?`, `userId?`, `title?`, `from?`, `to?`, `status?` | `200` `{ "appointments": Appointment[] }` |
 | POST | `/appointments/{id}/cancel` | owner or admin | none | `200` `Appointment` |
-| POST | `/appointments/{id}/reschedule` | owner or admin | `{ "date": string, "startTime": string, "endTime": string }` | `200` `Appointment` |
+| POST | `/appointments/{id}/reschedule` | owner or admin | `{ "title": string, "description"?: string, "date": string, "startTime": string, "endTime": string }` | `200` `Appointment` |
 
 ## Object shapes
 
@@ -111,6 +111,8 @@ At least one of `role` or `isAgent` is required.
   "id": "uuid",
   "userId": "uuid",
   "resourceId": "uuid",
+  "title": "string",
+  "description": "string",
   "startAt": "ISO UTC",
   "endAt": "ISO UTC",
   "startAtLocal": "Seattle ISO with offset",
@@ -190,8 +192,10 @@ The overlap invariant must be enforced at the database level with the PostgreSQL
 ## Business rules
 
 - A user lists their own appointments. An admin lists all appointments and may filter by `userId`.
+- `title` is required (1-200 characters). `description` is optional (max 2000 characters); an empty string means none.
+- `GET /appointments?title=...` filters by case-insensitive substring, with `%` and `_` treated as literal characters.
 - Cancel and reschedule accept the appointment owner or an admin.
-- Reschedule validates the same way as create, and the overlap check excludes the appointment being rescheduled.
+- Reschedule validates the same way as create, updates title/description, and the overlap check excludes the appointment being rescheduled.
 - Admin endpoints return `FORBIDDEN` for non-admins.
 
 ## MCP over HTTP

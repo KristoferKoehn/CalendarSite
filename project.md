@@ -112,6 +112,8 @@ appointments (
   id UUID PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES users(id),
   resource_id UUID NOT NULL REFERENCES resources(id),
+  title TEXT NOT NULL DEFAULT 'Untitled',
+  description TEXT NOT NULL DEFAULT '',
   start_at TIMESTAMPTZ NOT NULL,
   end_at TIMESTAMPTZ NOT NULL,
   status TEXT NOT NULL DEFAULT 'booked',  -- booked | cancelled
@@ -179,6 +181,7 @@ Cancelled appointments do not block overlaps.
 
 ### Rules
 - Requires an authenticated user.
+- Requires a `title` (1-200 characters); `description` is optional (max 2000 characters).
 - `resourceId` must reference an existing, active resource.
 - `endTime` must be strictly after `startTime`.
 - The time window is interpreted in `America/Los_Angeles`.
@@ -201,7 +204,7 @@ Cancelled appointments do not block overlaps.
 ### List
 - User sees their own appointments.
 - Admin sees all appointments.
-- Filters: resource, date range, status.
+- Filters: resource, title (case-insensitive substring), date range, status.
 
 ---
 

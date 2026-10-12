@@ -74,7 +74,8 @@
 
 - `GET /appointments` returns the caller's own appointments for a normal user.
 - For an admin it returns all appointments, with an optional `userId` filter.
-- Shared filters: `resourceId`, `from`, `to`, `status`.
+- Shared filters: `resourceId`, `title`, `from`, `to`, `status`.
+- `title` is a case-insensitive substring match.
 - `from` and `to` are calendar dates interpreted in `America/Los_Angeles`.
 
 ## Error envelope

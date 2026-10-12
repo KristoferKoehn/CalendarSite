@@ -1,11 +1,15 @@
+import { z } from "zod";
 import {
   OpenApiGeneratorV3,
   OpenAPIRegistry,
+  extendZodWithOpenApi,
 } from "@asteasolutions/zod-to-openapi";
 import { registerAppointmentPaths } from "./paths/appointments";
 import { registerAuthPaths } from "./paths/auth";
 import { registerResourcePaths } from "./paths/resources";
 import { registerUserPaths } from "./paths/users";
+
+extendZodWithOpenApi(z);
 
 export function buildOpenApiDocument() {
   const registry = new OpenAPIRegistry();

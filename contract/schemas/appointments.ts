@@ -10,9 +10,14 @@ import {
 export const appointmentStatusSchema = z.enum(["booked", "cancelled"]);
 export type AppointmentStatus = z.infer<typeof appointmentStatusSchema>;
 
+export const appointmentTitleSchema = z.string().trim().min(1).max(200);
+export const appointmentDescriptionSchema = z.string().trim().max(2000);
+
 export const appointmentCreateInputSchema = z
   .object({
     resourceId: uuidSchema,
+    title: appointmentTitleSchema,
+    description: appointmentDescriptionSchema.optional(),
     date: dateSchema,
     startTime: timeSchema,
     endTime: timeSchema,
@@ -25,6 +30,8 @@ export type AppointmentCreateInput = z.infer<typeof appointmentCreateInputSchema
 
 export const appointmentRescheduleInputSchema = z
   .object({
+    title: appointmentTitleSchema,
+    description: appointmentDescriptionSchema.optional(),
     date: dateSchema,
     startTime: timeSchema,
     endTime: timeSchema,
@@ -40,6 +47,7 @@ export type AppointmentRescheduleInput = z.infer<
 export const appointmentListQuerySchema = z.object({
   resourceId: uuidSchema.optional(),
   userId: uuidSchema.optional(),
+  title: z.string().trim().max(200).optional(),
   from: dateSchema.optional(),
   to: dateSchema.optional(),
   status: appointmentStatusSchema.optional(),
@@ -50,6 +58,8 @@ export const appointmentSchema = z.object({
   id: uuidSchema,
   userId: uuidSchema,
   resourceId: uuidSchema,
+  title: appointmentTitleSchema,
+  description: appointmentDescriptionSchema,
   startAt: isoTimestampSchema,
   endAt: isoTimestampSchema,
   startAtLocal: isoTimestampSchema,
