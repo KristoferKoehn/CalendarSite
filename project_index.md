@@ -187,8 +187,22 @@ This runs `tsx scripts/generate-contract.ts` and writes `contract/out/openapi.js
 
 The output is **git-ignored** (`/contract/out/`) and is not present in a fresh
 checkout. It must be generated before the backend team can read the machine
-contract. Note that the generated `servers` URL is `http://localhost:4000`, which
-disagrees with the `127.0.0.1:4001` stated in the prose docs.
+contract.
+
+The generated `servers` URL is `http://localhost:4000`. That is the **deployed**
+port, and `https://couchcollective.software:4000/healthz` is live. The local dev
+default is `127.0.0.1:4001`; the two are different environments, not a conflict.
+
+## Ports
+
+| Service | Local dev | Deployed |
+|---|---|---|
+| Frontend | `127.0.0.1:3000` | `https://couchcollective.software` |
+| Backend REST + MCP | `127.0.0.1:4001` (config default) | `https://couchcollective.software:4000` |
+
+The deployed port is set per environment (`PORT`) or fronted by a proxy. Because
+`NEXT_PUBLIC_API_URL` is inlined at build time, changing the deployed API URL
+requires a rebuild.
 
 ## Tests and CI
 

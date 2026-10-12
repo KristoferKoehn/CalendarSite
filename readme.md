@@ -65,10 +65,25 @@ NEXT_PUBLIC_API_URL=http://127.0.0.1:4001
 The backend serves the MCP endpoint at `POST /mcp` on the same listener, and
 `GET /healthz` is an unauthenticated liveness probe.
 
-> The deployed backend URL uses port **4000**, while the backend's own default bind
-> is loopback **4001** — almost certainly a reverse proxy. This discrepancy is
-> unresolved; see the risk list in `../documentation/unified-documentation.md`. The
-> committed CI workflow builds with `NEXT_PUBLIC_API_URL=https://couchcollective.software:4000`.
+### Why two different ports
+
+These are not in conflict — they belong to different environments:
+
+- **`4001` is the backend's local default.** It is what `internal/config/config.go`
+  uses when no `PORT` is set, bound to loopback. It is not exposed publicly: the
+  deployed host does not accept connections on 4001.
+- **`4000` is the deployed port.** The hosted backend is reachable at
+  `https://couchcollective.software:4000`, where `GET /healthz` returns
+  `200 {"status":"ok"}`. Deployments set the backend's `PORT` to 4000 (or front it
+  with a proxy that maps 4000 to the local listener).
+
+The committed CI workflow builds with
+`NEXT_PUBLIC_API_URL=https://couchcollective.software:4000`, and that value is what
+the deployed frontend actually uses.
+
+> Because `NEXT_PUBLIC_*` is inlined at build time, the deployed frontend is pinned
+> to whatever `NEXT_PUBLIC_API_URL` was set to when it was built. Changing that value
+> requires a rebuild and redeploy — it cannot be changed at runtime.
 
 ## Scripts
 

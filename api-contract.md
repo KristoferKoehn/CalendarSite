@@ -15,9 +15,10 @@
 > - `DELETE /users/{id}` is implemented and documented below.
 > - The generated document, `contract/out/openapi.json`, is **not committed** — it
 >   is git-ignored and must be produced with `npm run contract:generate`.
-> - That generated document declares the backend at `http://localhost:4000`,
->   while this file and `backend-handoff.md` say `127.0.0.1:4001`. See the risk
->   list in the unified document.
+> - That generated document declares the backend at `http://localhost:4000`. That
+>   remote matches the **deployed** port; the local dev default is
+>   `127.0.0.1:4001`. There is no conflict — see `readme.md`, "Why two different
+>   ports".
 > - The DST rules below are enforced by the **backend**; the frontend's
 >   `lib/time.ts` helpers are best-effort and are not on any production path.
 

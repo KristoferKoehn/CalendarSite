@@ -33,8 +33,9 @@ must get exactly right.
 - The frontend stores the token and calls the backend directly over HTTP.
 - `from` and `to` on `GET /appointments` are calendar dates in America/Los_Angeles.
 - Frontend serves on `http://127.0.0.1:3000` locally; deployed at `https://couchcollective.software`.
-- Backend binds `127.0.0.1:4001` locally. The generated OpenAPI document and the
-  deployed frontend build both use port **4000**, which is unresolved.
+- Backend binds `127.0.0.1:4001` **by default for local development**; the deployed
+  backend is reachable at `https://couchcollective.software:4000`. These are not in
+  conflict — deployments set `PORT=4000` (or proxy 4000 to the local listener).
 
 ## API surface
 
@@ -234,8 +235,8 @@ Seed the backend with these values for a frictionless first connection:
 ## Ports and origins
 
 - Frontend dev: `http://127.0.0.1:3000` (loopback only, as configured in `package.json`).
-- Backend REST and MCP bind: `http://127.0.0.1:4001`. MCP is `POST /mcp` on the same listener; `GET /healthz` is an unauthenticated liveness probe.
-- Deployed frontend builds point at `https://couchcollective.software:4000` (see `.github/workflows/local-ci.yml`), which is **not** the backend's loopback bind port. Port 4000 vs 4001 is unresolved.
+- Backend REST and MCP, local default: `http://127.0.0.1:4001`. MCP is `POST /mcp` on the same listener; `GET /healthz` is an unauthenticated liveness probe.
+- Backend REST and MCP, **deployed**: `https://couchcollective.software:4000`. This is the port the hosted frontend calls, and `GET /healthz` there returns `200 {"status":"ok"}`. Port 4001 is not reachable from outside.
 - The frontend points at the backend with `NEXT_PUBLIC_API_URL`. There is no default and no `.env.example`; a missing value is not detected at startup but makes every request fail with `INTERNAL`.
 
 ## CORS
