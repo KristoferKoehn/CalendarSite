@@ -144,6 +144,15 @@ export class HttpApiClient implements ApiClient {
     });
   }
 
+  async deleteUser(id: string): Promise<Result<User, ApiError>> {
+    return this.request({
+      method: "DELETE",
+      path: `/users/${encodeURIComponent(id)}`,
+      auth: true,
+      schema: userSchema,
+    });
+  }
+
   async createAppointment(
     input: AppointmentCreateInput,
   ): Promise<Result<Appointment, ApiError>> {

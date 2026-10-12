@@ -29,6 +29,7 @@ export interface ApiClient {
 
   listUsers(): Promise<Result<User[], ApiError>>;
   updateUser(id: string, input: UpdateUserInput): Promise<Result<User, ApiError>>;
+  deleteUser(id: string): Promise<Result<User, ApiError>>;
 
   createAppointment(input: AppointmentCreateInput): Promise<Result<Appointment, ApiError>>;
   listAppointments(query?: AppointmentListQuery): Promise<Result<Appointment[], ApiError>>;

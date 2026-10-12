@@ -9,14 +9,21 @@ type Props = {
   users: User[];
   currentUserId: string | undefined;
   onUpdate: (id: string, input: UpdateUserInput) => Promise<ApiError | null>;
+  onDelete: (id: string) => Promise<ApiError | null>;
 };
 
-export function UserTable({ users, currentUserId, onUpdate }: Props) {
+export function UserTable({ users, currentUserId, onUpdate, onDelete }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   async function update(id: string, input: UpdateUserInput) {
     setError(null);
     const result = await onUpdate(id, input);
+    if (result) setError(errorMessage(result));
+  }
+
+  async function remove(id: string) {
+    setError(null);
+    const result = await onDelete(id);
     if (result) setError(errorMessage(result));
   }
 
@@ -47,7 +54,7 @@ export function UserTable({ users, currentUserId, onUpdate }: Props) {
                     onChange={(event) => update(user.id, { isAgent: event.target.checked })}
                   />
                 </td>
-                <td>
+                <td className="space-x-2">
                   {!isSelf && (
                     <button
                       onClick={() =>
@@ -58,6 +65,18 @@ export function UserTable({ users, currentUserId, onUpdate }: Props) {
                       className="rounded border px-2 py-1"
                     >
                       {user.role === "admin" ? "Remove admin" : "Make admin"}
+                    </button>
+                  )}
+                  {!isSelf && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Delete this user?")) {
+                          void remove(user.id);
+                        }
+                      }}
+                      className="rounded border px-2 py-1 text-red-600"
+                    >
+                      Delete
                     </button>
                   )}
                 </td>

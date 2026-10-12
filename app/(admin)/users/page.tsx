@@ -51,6 +51,16 @@ export default function AdminUsersPage() {
     return result.error;
   }
 
+  async function handleDelete(id: string): Promise<ApiError | null> {
+    setError(null);
+    const result = await api.deleteUser(id);
+    if (result.ok) {
+      await reload();
+      return null;
+    }
+    return result.error;
+  }
+
   if (loading) {
     return <div className="text-sm text-zinc-500">Loading users...</div>;
   }
@@ -59,7 +69,12 @@ export default function AdminUsersPage() {
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Users</h1>
       <ErrorBanner error={error} />
-      <UserTable users={users} currentUserId={user?.id} onUpdate={handleUpdate} />
+      <UserTable
+        users={users}
+        currentUserId={user?.id}
+        onUpdate={handleUpdate}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }

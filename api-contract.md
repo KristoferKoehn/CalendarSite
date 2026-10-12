@@ -52,6 +52,7 @@
 |---|---|---|---|
 | GET | `/users` | admin | list users |
 | PATCH | `/users/:id` | admin | set `role` or `isAgent` |
+| DELETE | `/users/:id` | admin | delete user |
 
 ### Appointments
 

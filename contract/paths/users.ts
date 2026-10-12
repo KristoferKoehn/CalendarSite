@@ -66,4 +66,39 @@ export function registerUserPaths(registry: OpenAPIRegistry): void {
       },
     },
   });
+
+  registry.registerPath({
+    method: "delete",
+    path: "/users/{id}",
+    summary: "Delete a user (admin)",
+    tags: ["users"],
+    security: [{ bearerAuth: [] }],
+    request: { params: z.object({ id: uuidSchema }) },
+    responses: {
+      200: {
+        description: "Deleted user",
+        content: { "application/json": { schema: userSchema } },
+      },
+      400: {
+        description: "Invalid input",
+        content: { "application/json": { schema: errorEnvelopeSchema } },
+      },
+      401: {
+        description: "Unauthenticated",
+        content: { "application/json": { schema: errorEnvelopeSchema } },
+      },
+      403: {
+        description: "Not an admin",
+        content: { "application/json": { schema: errorEnvelopeSchema } },
+      },
+      404: {
+        description: "User not found",
+        content: { "application/json": { schema: errorEnvelopeSchema } },
+      },
+      409: {
+        description: "Conflict",
+        content: { "application/json": { schema: errorEnvelopeSchema } },
+      },
+    },
+  });
 }

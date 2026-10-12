@@ -60,8 +60,11 @@ Authorization values: `public`, `user`, `admin`, or `owner or admin`.
 |---|---|---|---|---|
 | GET | `/users` | admin | none | `200` `{ "users": User[] }` |
 | PATCH | `/users/{id}` | admin | `{ "role"?: "user" \| "admin", "isAgent"?: boolean }` | `200` `User` |
+| DELETE | `/users/{id}` | admin | none | `200` `User` |
 
 At least one of `role` or `isAgent` is required.
+
+`DELETE` removes the user row. It returns `409 CONFLICT` when the target is the caller, is the last remaining admin, or has any appointment.
 
 ### Appointments
 
@@ -145,7 +148,7 @@ At least one of `role` or `isAgent` is required.
 | `UNAUTHENTICATED` | 401 | missing or expired token, wrong email or password |
 | `FORBIDDEN` | 403 | wrong role or not the owner |
 | `NOT_FOUND` | 404 | missing user, resource, or appointment, or inactive resource |
-| `CONFLICT` | 409 | overlapping booking, duplicate email, already cancelled |
+| `CONFLICT` | 409 | overlapping booking, duplicate email, already cancelled, delete self/last admin/user with appointments |
 | `INTERNAL` | 500 | unexpected errors |
 
 ## Authentication
