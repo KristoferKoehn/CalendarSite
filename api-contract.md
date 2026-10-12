@@ -76,7 +76,7 @@
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | POST | `/appointments` | authenticated | create appointment |
-| GET | `/appointments` | authenticated | list, scoped by role |
+| GET | `/appointments` | authenticated | list all appointments, filterable |
 | POST | `/appointments/:id/cancel` | owner or admin | cancel appointment |
 | POST | `/appointments/:id/reschedule` | owner or admin | reschedule appointment |
 
@@ -89,11 +89,22 @@
 
 ## List scoping
 
-- `GET /appointments` returns the caller's own appointments for a normal user.
-- For an admin it returns all appointments, with an optional `userId` filter.
-- Shared filters: `resourceId`, `title`, `from`, `to`, `status`.
+- `GET /appointments` returns **all appointments to every authenticated user**.
+  Visibility is not restricted by role or ownership.
+- `userId` is an optional filter that narrows the result to a single owner. Any
+  authenticated caller may use it.
+- Shared filters: `resourceId`, `userId`, `title`, `from`, `to`, `status`.
 - `title` is a case-insensitive substring match.
 - `from` and `to` are calendar dates interpreted in `America/Los_Angeles`.
+
+Read access is shared; **write access is not**. Only the appointment's owner or an
+admin may cancel or reschedule it, and `GET /appointments` is the only endpoint that
+exposes other users' appointments. Admin-only endpoints (users, resources) still
+return `FORBIDDEN` to non-admins.
+
+> This was tightened after the initial release: non-admins were previously scoped to
+> their own appointments and a supplied `userId` was ignored. The earlier behaviour
+> is described in `project.md`, which is historical.
 
 ## Error envelope
 

@@ -168,6 +168,8 @@ export class HttpApiClient implements ApiClient {
   async listAppointments(
     query: AppointmentListQuery = {},
   ): Promise<Result<Appointment[], ApiError>> {
+    // Appointments are readable by every authenticated user; `userId` narrows to
+    // one owner and is not restricted to admins.
     const result = await this.request({
       method: "GET",
       path: "/appointments",

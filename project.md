@@ -261,6 +261,11 @@ authoritative.
 - Admin sees all appointments.
 - Filters: resource, title (case-insensitive substring), date range, status.
 
+**Superseded.** Appointments are now readable by **every authenticated user**, not
+just their owner; `userId` is an optional filter available to anyone. Read access is
+shared while write access (cancel, reschedule) remains restricted to the owner or an
+admin.
+
 ---
 
 ## 7. Timezone specification

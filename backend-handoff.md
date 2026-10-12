@@ -202,7 +202,9 @@ The overlap invariant must be enforced at the database level with the PostgreSQL
 
 ## Business rules
 
-- A user lists their own appointments. An admin lists all appointments and may filter by `userId`.
+- Appointments are readable by **every authenticated user**. `GET /appointments` is
+  not scoped to the caller, and any caller may filter by any `userId`. Read access is
+  shared; write access is not — only the owner or an admin may cancel or reschedule.
 - `title` is required (1-200 characters). `description` is optional (max 2000 characters); an empty string means none.
 - `GET /appointments?title=...` filters by case-insensitive substring, with `%` and `_` treated as literal characters.
 - Cancel and reschedule accept the appointment owner or an admin.
