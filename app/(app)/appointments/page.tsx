@@ -88,49 +88,65 @@ export default function AppointmentsPage() {
         </Link>
       </div>
 
-      {isAdmin && (
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="text-sm">
-            Resource
-            <select
-              value={filters.resourceId ?? ""}
-              onChange={(event) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  resourceId: event.target.value || undefined,
-                }))
-              }
-              className="ml-1 rounded border px-2 py-1"
-            >
-              <option value="">All</option>
-              {resources.map((resource) => (
-                <option key={resource.id} value={resource.id}>
-                  {resource.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            Status
-            <select
-              value={filters.status ?? ""}
-              onChange={(event) => {
-                const value = event.target.value;
-                setFilters((prev) => ({
-                  ...prev,
-                  status:
-                    value === "booked" || value === "cancelled" ? value : undefined,
-                }));
-              }}
-              className="ml-1 rounded border px-2 py-1"
-            >
-              <option value="">All</option>
-              <option value="booked">Booked</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </label>
-        </div>
-      )}
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="text-sm">
+          Title
+          <input
+            type="text"
+            value={filters.title ?? ""}
+            onChange={(event) =>
+              setFilters((prev) => ({
+                ...prev,
+                title: event.target.value || undefined,
+              }))
+            }
+            className="ml-1 rounded border px-2 py-1"
+          />
+        </label>
+        {isAdmin && (
+          <>
+            <label className="text-sm">
+              Resource
+              <select
+                value={filters.resourceId ?? ""}
+                onChange={(event) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    resourceId: event.target.value || undefined,
+                  }))
+                }
+                className="ml-1 rounded border px-2 py-1"
+              >
+                <option value="">All</option>
+                {resources.map((resource) => (
+                  <option key={resource.id} value={resource.id}>
+                    {resource.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm">
+              Status
+              <select
+                value={filters.status ?? ""}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setFilters((prev) => ({
+                    ...prev,
+                    status:
+                      value === "booked" || value === "cancelled" ? value : undefined,
+                  }));
+                }}
+                className="ml-1 rounded border px-2 py-1"
+              >
+                <option value="">All</option>
+                <option value="booked">Booked</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </label>
+          </>
+        )}
+      </div>
 
       <ErrorBanner error={error} />
 
@@ -141,7 +157,11 @@ export default function AppointmentsPage() {
           {appointments.map((appointment) => (
             <li key={appointment.id} className="flex items-center gap-3 px-4 py-3">
               <div className="flex-1">
-                <div className="font-medium">
+                <div className="font-medium">{appointment.title}</div>
+                {appointment.description && (
+                  <div className="text-sm text-zinc-600">{appointment.description}</div>
+                )}
+                <div className="text-sm text-zinc-500">
                   {formatSeattleRange(appointment.startAtLocal, appointment.endAtLocal)}
                 </div>
                 {isAdmin && (

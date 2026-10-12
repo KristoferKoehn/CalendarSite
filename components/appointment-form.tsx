@@ -24,6 +24,8 @@ type Props = {
     startTime?: string;
     endTime?: string;
     resourceId?: string;
+    title?: string;
+    description?: string;
   };
   resourceName?: string;
   submitLabel: string;
@@ -44,6 +46,8 @@ export function AppointmentForm({
   const [date, setDate] = useState(initial?.date ?? "");
   const [startTime, setStartTime] = useState(initial?.startTime ?? "");
   const [endTime, setEndTime] = useState(initial?.endTime ?? "");
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -54,6 +58,8 @@ export function AppointmentForm({
     if (mode === "create") {
       const parsed = appointmentCreateInputSchema.safeParse({
         resourceId,
+        title,
+        description,
         date,
         startTime,
         endTime,
@@ -70,6 +76,8 @@ export function AppointmentForm({
     }
 
     const parsed = appointmentRescheduleInputSchema.safeParse({
+      title,
+      description,
       date,
       startTime,
       endTime,
@@ -112,6 +120,26 @@ export function AppointmentForm({
           Resource: {resourceName ?? "Unknown"}
         </p>
       )}
+
+      <div>
+        <label className="block text-sm font-medium">Title</label>
+        <input
+          type="text"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          className="w-full rounded border px-2 py-1"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium">Description</label>
+        <textarea
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          className="w-full rounded border px-2 py-1"
+          rows={3}
+        />
+      </div>
 
       <div>
         <label className="block text-sm font-medium">Date</label>

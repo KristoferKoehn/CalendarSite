@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   appointmentCreateInputSchema,
+  appointmentListQuerySchema,
   errorEnvelopeSchema,
   loginInputSchema,
 } from "@/contract";
@@ -8,6 +9,7 @@ import {
 describe("appointmentCreateInputSchema", () => {
   const valid = {
     resourceId: "3f2a7c1b-0000-4000-8000-000000000000",
+    title: "Standup",
     date: "2026-10-10",
     startTime: "14:00",
     endTime: "15:00",
@@ -15,6 +17,40 @@ describe("appointmentCreateInputSchema", () => {
 
   it("accepts valid input", () => {
     expect(appointmentCreateInputSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("accepts an optional description", () => {
+    expect(
+      appointmentCreateInputSchema.safeParse({ ...valid, description: "Daily sync" }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a missing title", () => {
+    const result = appointmentCreateInputSchema.safeParse({
+      resourceId: valid.resourceId,
+      date: valid.date,
+      startTime: valid.startTime,
+      endTime: valid.endTime,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a blank title", () => {
+    expect(
+      appointmentCreateInputSchema.safeParse({ ...valid, title: "   " }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an over-limit title", () => {
+    expect(
+      appointmentCreateInputSchema.safeParse({ ...valid, title: "a".repeat(201) }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an over-limit description", () => {
+    expect(
+      appointmentCreateInputSchema.safeParse({ ...valid, description: "a".repeat(2001) }).success,
+    ).toBe(false);
   });
 
   it("rejects endTime equal to startTime", () => {
@@ -40,6 +76,12 @@ describe("appointmentCreateInputSchema", () => {
   it("rejects an invalid resource id", () => {
     const result = appointmentCreateInputSchema.safeParse({ ...valid, resourceId: "nope" });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("appointmentListQuerySchema", () => {
+  it("accepts a title filter", () => {
+    expect(appointmentListQuerySchema.safeParse({ title: "standup" }).success).toBe(true);
   });
 });
 

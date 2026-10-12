@@ -72,6 +72,8 @@ export function RescheduleContent() {
         resources={[]}
         resourceName={resourceName}
         initial={{
+          title: appointment.title,
+          description: appointment.description,
           date: appointment.startAtLocal.slice(0, 10),
           startTime: appointment.startAtLocal.slice(11, 16),
           endTime: appointment.endAtLocal.slice(11, 16),

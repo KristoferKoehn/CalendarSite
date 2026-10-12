@@ -174,6 +174,7 @@ export class HttpApiClient implements ApiClient {
       query: {
         resourceId: query.resourceId,
         userId: query.userId,
+        title: query.title,
         from: query.from,
         to: query.to,
         status: query.status,
