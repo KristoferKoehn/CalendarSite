@@ -1,32 +1,63 @@
-name: Next.js Local Runner Build
+name: CalendarSite — Build, Check, and Deploy
+
+# Every check below blocks the deploy: the service is restarted only after
+# install, typecheck, lint, tests, and build have all succeeded.
+#
+# Note on failure handling: in PowerShell, setting $LASTEXITCODE does NOT make a
+# step fail. Only `throw` (or an explicit `exit <non-zero>`) does. That is why
+# each check throws rather than merely writing a warning, and why this file must
+# never end with an unconditional `exit 0`.
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
 
 jobs:
-  build:
+  build-check-deploy:
+    name: Install, check, build, deploy
     runs-on: self-hosted
     env:
       NEXT_PUBLIC_API_URL: https://couchcollective.software:4000
+    defaults:
+      run:
+        working-directory: C:\Users\ferna\Documents\CalendarSite
 
     steps:
-      - name: Deploy and restart dev server
-        run: | 
-          cd C:\Users\ferna\Documents\CalendarSite
-
+      - name: Update the runner working copy
+        run: |
           git pull origin main
-          if ($LASTEXITCODE -ne 0) { Write-Warning "git pull failed" }
+          if ($LASTEXITCODE -ne 0) { throw "git pull failed (exit $LASTEXITCODE)" }
 
-          npm install
+      - name: Install dependencies
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw "npm ci failed (exit $LASTEXITCODE)" }
+
+      - name: Typecheck
+        run: |
+          npm run typecheck
+          if ($LASTEXITCODE -ne 0) { throw "typecheck failed (exit $LASTEXITCODE)" }
+
+      - name: Lint
+        run: |
+          npm run lint
+          if ($LASTEXITCODE -ne 0) { throw "lint failed (exit $LASTEXITCODE)" }
+
+      - name: Test
+        run: |
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw "tests failed (exit $LASTEXITCODE)" }
+
+      - name: Build
+        run: |
           npm run build
-          if ($LASTEXITCODE -ne 0) { Write-Error "npm install failed"; exit 1 }
+          if ($LASTEXITCODE -ne 0) { throw "build failed (exit $LASTEXITCODE)" }
 
+      - name: Restart service
+        if: github.event_name == 'push'
+        run: |
           servy-cli restart --name='CalendarSite' --quiet | Out-Null
-          if ($LASTEXITCODE -ne 0) { Write-Warning "servy-cli restart returned $LASTEXITCODE" }
-
-          Write-Host "Dev server restarted successfully"
-          exit 0
-          
+          if ($LASTEXITCODE -ne 0) { throw "servy-cli restart failed (exit $LASTEXITCODE)" }
+          Write-Host "CalendarSite restarted successfully"
