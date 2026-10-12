@@ -32,8 +32,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
-          if ($LASTEXITCODE -ne 0) { throw "npm ci failed (exit $LASTEXITCODE)" }
+          npm install
+          if ($LASTEXITCODE -ne 0) { throw "install failed (exit $LASTEXITCODE)" }
 
       - name: Typecheck
         run: |

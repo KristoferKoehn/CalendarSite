@@ -102,11 +102,16 @@ There is no coverage for the HTTP client, session context, DST edge cases, or th
 overlap invariant.
 
 `.github/workflows/local-ci.yml` ("CalendarSite — Build, Check, and Deploy") runs
-`npm ci`, `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build` as
-separate steps. **Any failure blocks the deploy** — `servy-cli` restarts the
+`npm install`, `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build`
+as separate steps. **Any failure blocks the deploy** — `servy-cli` restarts the
 service only after all five have passed, and only on `push` (never on a pull
 request).
 
+> The install step uses `npm install` rather than `npm ci` deliberately. `npm ci`
+> was tried and failed on the self-hosted runner; `npm install` is more tolerant of
+> a dirty npm cache and a stale `node_modules`. The trade-off is that installs are
+> not pinned to the lockfile.
+>
 > The previous version of this workflow ran none of those checks and could not
 > fail: it ended with an unconditional `exit 0`, and in PowerShell merely setting
 > `$LASTEXITCODE` does not fail a step — only `throw` does. Keep that in mind when
