@@ -1,5 +1,17 @@
 # Appointment System — MVP Hand-Off Document
 
+> **Status: historical specification.** This document was written before the
+> system was split into two repositories, and it describes an aspirational
+> monorepo layout (`apps/web`, `apps/mcp-server`, `apps/admin`, `packages/*`) that
+> was never built. The delivered system is:
+>
+> - `CalendarSite` — this repo, a single flat Next.js App Router app.
+> - `CalendarBackend` — the API, written in **Go**, not TypeScript.
+>
+> Where this document conflicts with the implementation, the implementation and
+> `../documentation/unified-documentation.md` win. Known conflicts are flagged
+> inline below as **Superseded**.
+
 ## Summary
 
 This document specifies an MVP appointment scheduling system built in TypeScript with an SQL database. It serves two kinds of clients through one shared backend: a human web interface and an MCP-over-HTTP interface for agents. Both interfaces authenticate with email and password, and both operate on the same core appointment logic.
@@ -40,6 +52,20 @@ MVP boundaries are intentionally small: no email verification, no notifications,
 
 ## 2. Tech stack and constraints
 
+**Partially superseded.** What was actually used:
+
+| Area | Spec | As built |
+|---|---|---|
+| Language | TypeScript (strict mode) | Frontend: TypeScript strict. Backend: **Go 1.27.2** |
+| Database | SQL (PostgreSQL recommended for `tstzrange` overlap constraint) | PostgreSQL, with `btree_gist` and an `EXCLUDE USING gist` constraint |
+| Web app | TypeScript web framework (Next.js, Remix, or similar) | Next.js 16.4 App Router, React 19.3 |
+| MCP transport | MCP over HTTP (Streamable HTTP / JSON-RPC) | JSON-RPC 2.0 over `POST /mcp`, stateless; no session header |
+| Timezone library | `Temporal`, `Luxon`, or `date-fns-tz` | Go `time` with embedded `time/tzdata`; `Intl` on the client |
+| Password hashing | `argon2id` or `bcrypt` | argon2id (PHC-encoded), min length 8 |
+| Validation | Zod or equivalent schema validation | Zod in `contract/`; mirrored by hand in the Go `internal/validation` package |
+
+The original table is kept below.
+
 | Area | Choice |
 |---|---|
 | Language | TypeScript (strict mode) |
@@ -54,17 +80,28 @@ MVP boundaries are intentionally small: no email verification, no notifications,
 
 ## 3. Architecture
 
+**Superseded.** This monorepo layout was never built; neither repository matches
+it. `CalendarSite` is one flat Next.js app (`app/`, `components/`, `contract/`,
+`lib/`, `tests/`, `scripts/`) and the backend is the separate Go repo
+`CalendarBackend` (`cmd/`, `internal/`). The principle that survived is the
+important part: transport layers hold no business logic, and REST and MCP both
+call the same core services.
+
 ```text
-apps/
+apps/                     (NOT BUILT)
   web/          -> website + HTTP API for humans
   mcp-server/   -> MCP over HTTP server for agents
   admin/        -> admin views (can live inside web)
 
-packages/
+packages/                 (NOT BUILT)
   core/         -> auth + appointment use cases (shared business logic)
   db/           -> SQL client, migrations, repositories
   shared/       -> types, validation, error codes, timezone helpers
 ```
+
+As delivered: `contract/schemas/*.ts` is the shared type source, `lib/` holds the
+client-side shared logic, and all business logic, validation, migrations, and
+timezone handling live in the Go backend under `internal/`.
 
 Both `web` and `mcp-server` call the same `packages/core` services. No business logic should live in the transport layer.
 
@@ -112,8 +149,6 @@ appointments (
   id UUID PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES users(id),
   resource_id UUID NOT NULL REFERENCES resources(id),
-  title TEXT NOT NULL DEFAULT 'Untitled',
-  description TEXT NOT NULL DEFAULT '',
   start_at TIMESTAMPTZ NOT NULL,
   end_at TIMESTAMPTZ NOT NULL,
   status TEXT NOT NULL DEFAULT 'booked',  -- booked | cancelled
@@ -123,6 +158,17 @@ appointments (
   CHECK (end_at > start_at)
 )
 ```
+
+**As implemented**, migration `0002_appointment_details.sql` also adds:
+
+```sql
+title       TEXT NOT NULL DEFAULT 'Untitled',   -- trimmed, 1-200 chars, required on input
+description TEXT NOT NULL DEFAULT ''            -- trimmed, max 2000 chars on input
+```
+
+Note the asymmetry with resources: an appointment `description` is `NOT NULL`
+defaulting to `''` and is never null on the wire, whereas a resource
+`description` is nullable.
 
 ### sessions
 ```sql
@@ -165,6 +211,10 @@ Cancelled appointments do not block overlaps.
 - Tokens expire (recommended: 1–24 hours for MVP; pick one and document it).
 - Expired or missing tokens return `UNAUTHENTICATED`.
 
+**Decided:** 24 hours, configurable on the backend via `TOKEN_TTL_HOURS`. Tokens
+are opaque and stored SHA-256-hashed in the `sessions` table; the plaintext is
+never persisted. Passwords use argon2id with a minimum length of 8.
+
 ---
 
 ## 6. Appointment specification
@@ -187,6 +237,11 @@ Cancelled appointments do not block overlaps.
 - The time window is interpreted in `America/Los_Angeles`.
 - If the local time is nonexistent (spring-forward), reject with `INVALID_INPUT`.
 - If the local time is ambiguous (fall-back), pick the earlier offset or reject — pick one and document it.
+
+**Decided:** the backend rejects ambiguous times with `INVALID_INPUT`. Note that
+the frontend's `lib/time.ts` helper, if it were used, would silently pick the
+earlier offset; it is not on any production path, so the backend's rejection is
+authoritative.
 - Overlap check is per resource among `status = 'booked'` appointments.
 - Insert as `status = 'booked'`.
 
@@ -227,6 +282,12 @@ Cancelled appointments do not block overlaps.
 - Protocol: MCP over HTTP (Streamable HTTP / JSON-RPC).
 - Auth: `Authorization: Bearer <token>` for all tools except `auth.login` and `auth.register`.
 
+**As implemented:** stateless JSON-RPC 2.0 over `POST` only (any other method is
+`405`). There is **no session-id header**; the Streamable HTTP session pattern was
+not implemented. Advertised protocol version is `2024-11-05`. Supported methods are
+`initialize`, `tools/list`, `tools/call`, and `ping`. Contract errors surface as
+JSON-RPC error code `-32000` with the contract code in `error.data.code`.
+
 ### Tools
 
 #### `auth.register`
@@ -260,10 +321,12 @@ Output:
 ```
 
 #### `appointments.create`
-Input:
+Input (as implemented — `title` is **required**, `description` optional, both trimmed):
 ```json
 {
   "resourceId": "uuid",
+  "title": "Team sync",
+  "description": "optional, max 2000 characters",
   "date": "2026-10-10",
   "startTime": "14:00",
   "endTime": "15:00"
@@ -286,10 +349,11 @@ Input:
 ```
 
 #### `appointments.reschedule`
-Input:
+Input (as implemented — `title` is **required**):
 ```json
 {
   "appointmentId": "uuid",
+  "title": "Team sync",
   "date": "2026-10-11",
   "startTime": "10:00",
   "endTime": "11:00"
@@ -297,10 +361,11 @@ Input:
 ```
 
 #### `appointments.list`
-Input:
+Input (all fields optional; `title` is a case-insensitive substring):
 ```json
 {
   "resourceId": "uuid",
+  "title": "sync",
   "from": "2026-10-01",
   "to": "2026-10-31"
 }
@@ -334,6 +399,12 @@ Admin routes:
 - `/admin/users`
 - `/admin/resources`
 - `/admin/appointments`
+
+**Superseded.** The delivered app has no `/admin/*` URLs and no separate admin
+resources or appointments pages. The only admin-only route is `/users`.
+Resource and appointment administration happen inline on the shared `/resources`
+and `/appointments` pages, gated on `user.role === "admin"`. Client-side gating is
+a convenience only; the API enforces every rule.
 
 Admins never see plaintext passwords.
 
@@ -425,11 +496,22 @@ Admins never see plaintext passwords.
 
 ## 14. Open items to confirm before build
 
+**All five were resolved during implementation.** The original text is kept below
+for history, with the outcome:
+
 - Confirm PostgreSQL as the SQL database (needed for the `tstzrange` exclusion constraint).
+  → **Confirmed.** PostgreSQL with `btree_gist` and an `EXCLUDE USING gist` constraint.
 - Confirm Bearer token lifetime for MVP.
+  → **24 hours**, via `TOKEN_TTL_HOURS`.
 - Confirm behavior for ambiguous DST times (recommend: reject as `INVALID_INPUT`).
+  → **Rejected as `INVALID_INPUT`**, on the backend.
 - Confirm whether admin is a separate app or a role-gated section of the web app.
+  → **Role-gated section** of the same web app. There is no separate admin app.
 - Confirm the default resource seeding strategy for MVP (e.g., one placeholder resource).
+  → **Two seeded resources**, `Room A` and `Room B`, both active.
+- (Additional outcome) The `packages/db` and `packages/shared` layout was not used.
+  Migrations live in the Go backend's `internal/migrations`; timezone logic lives
+  in `internal/timeutil`.
 
 ---
 

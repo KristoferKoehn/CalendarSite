@@ -9,18 +9,18 @@ Single-page summary: CalendarSite is a Next.js App Router frontend for an appoin
 | Where is the API shape defined? | `contract/schemas/*.ts` |
 | Where is the REST client? | `lib/api/http.ts` |
 | Where is auth/session state? | `lib/session/session-context.tsx` |
-| Where is timezone logic? | `lib/time.ts` |
+| Where is timezone logic? | The **backend** owns it. `lib/time.ts` only formats ranges on the client; its UTC converters are unused. |
 | Where are the pages/routes? | `app/` |
 | Where are shared UI pieces? | `components/` |
 | Where are the tests? | `tests/` |
-| Where is the generated OpenAPI doc? | `contract/out/openapi.json` |
-| Where are the authoritative spec docs? | `project.md`, `api-contract.md`, `backend-handoff.md` |
+| Where is the generated OpenAPI doc? | `contract/out/openapi.json` — **not committed**; run `npm run contract:generate` first |
+| Where are the authoritative spec docs? | `project.md`, `api-contract.md`, `backend-handoff.md`, plus `../documentation/unified-documentation.md` |
 
 ## Never read (wasteful)
 
 - `node_modules/` (dependencies)
 - `.next/` (build output)
-- `contract/out/` (generated; run `npm run contract:generate` instead)
+- `contract/out/` (generated and git-ignored; run `npm run contract:generate` instead)
 - `tsconfig.tsbuildinfo`, `package-lock.json` (build/dependency caches)
 
 ## Feature lookup map
@@ -30,11 +30,11 @@ Single-page summary: CalendarSite is a Next.js App Router frontend for an appoin
 | Login / register / me / logout | `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`, `lib/session/session-context.tsx`, `lib/api/session.ts`, `contract/schemas/auth.ts` |
 | Appointments: create/list/cancel/reschedule | `app/(app)/appointments/**`, `components/appointment-form.tsx`, `contract/schemas/appointments.ts`, `lib/api/http.ts` |
 | Resources: list/create/edit/deactivate | `app/(app)/resources/page.tsx`, `components/resource-form.tsx`, `contract/schemas/resources.ts` |
-| Admin user management (role/isAgent) | `app/(admin)/users/page.tsx`, `components/user-table.tsx`, `contract/schemas/users.ts` |
+| Admin user management (role/isAgent/delete) | `app/(admin)/users/page.tsx`, `components/user-table.tsx`, `contract/schemas/users.ts` |
 | Route protection / redirects | `components/route-guard.tsx`, `app/(app)/layout.tsx`, `app/(admin)/layout.tsx` |
 | Error envelope + messages | `contract/errors.ts`, `lib/api/errors.ts`, `lib/api/error-message.ts`, `components/error-banner.tsx` |
-| Seattle <-> UTC conversion and formatting | `lib/time.ts`, `contract/schemas/common.ts` |
-| HTTP client selection | `lib/api/index.ts`, `.env.example` |
+| Seattle local ISO formatting | `lib/time.ts` (`formatSeattleRange` only), `contract/schemas/common.ts` |
+| HTTP client selection | `lib/api/index.ts` (`process.env.NEXT_PUBLIC_API_URL`) |
 
 ## Architecture
 
@@ -50,9 +50,9 @@ contract/schemas/*.ts             (single source of truth for types/shapes)
 ```
 
 - `lib/api/client.ts` defines the `ApiClient` interface; every UI call goes through it.
-- `lib/api/index.ts` builds the HTTP client from `NEXT_PUBLIC_API_URL` and throws if it is missing.
+- `lib/api/index.ts` builds the HTTP client from `NEXT_PUBLIC_API_URL`, substituting `""` when it is unset. It does **not** throw; the missing-configuration `ApiError(INTERNAL)` is raised on the first request in `lib/api/http.ts`.
 - `contract/` has no runtime I/O; it is pure schema + type definitions.
-- There is no backend code in this repo. `backend-handoff.md` is the spec for the separate backend.
+- There is no backend code in this repo. The backend is the Go `CalendarBackend` repo; `backend-handoff.md` is the spec for it.
 
 ## Directory catalogue
 
@@ -60,18 +60,22 @@ contract/schemas/*.ts             (single source of truth for types/shapes)
 
 | File | Purpose |
 |---|---|
-| `project.md` | Full MVP spec: data model, auth rules, timezone rules, MCP tools, acceptance criteria. Source of truth for scope. |
+| `project.md` | Original MVP spec: data model, auth rules, timezone rules, MCP tools, acceptance criteria. **Historical** — it describes an aspirational monorepo layout and a pre-split stack; the backend turned out to be Go. |
 | `api-contract.md` | REST API surface, authorization model, error codes, datetime contract. |
 | `backend-handoff.md` | Backend-facing contract: locked decisions, endpoint tables, object shapes, seed parity, ports, CORS. |
-| `readme.md` | Setup, scripts, ports, seed credentials, backend configuration. |
-| `package.json` | Scripts and deps. Next 16.4, React 19.3, zod 3, vitest, tsx, zod-to-openapi. |
+| `readme.md` | Setup, scripts, ports, backend configuration. |
+| `package.json` | Scripts and deps. Next 16.4.0, React 19.3.0, zod 3, vitest 3, tsx 4, zod-to-openapi 7. |
 | `next.config.ts` | `cacheComponents`, `partialPrefetching`, `allowedDevOrigins`, Tailwind Turbopack rule. |
 | `tsconfig.json` | Strict mode; `@/*` alias maps to repo root. |
 | `vitest.config.ts` | Node test env; `@` alias for Vitest. |
-| `eslint.config.mjs` | Flat ESLint config (Next defaults). |
-| `.env.example` | `NEXT_PUBLIC_API_URL`. |
+| `eslint.config.mjs` | Flat ESLint config (Next core-web-vitals + TypeScript). |
 | `startup.bat` | Runs `npm run start` (production serve on `127.0.0.1:3000`). |
-| `AGENTS.md` | Auto-generated Next.js agent rules; points at `node_modules/next/dist/docs/`. |
+| `AGENTS.md` | Auto-generated by `next dev`; not hand-maintained. References `node_modules/next/dist/docs/`. |
+| `.github/workflows/local-ci.yml` | Self-hosted CI ("CalendarSite — Build, Check, and Deploy"): pull, `npm ci`, typecheck, lint, test, build, then `servy-cli restart` on push. Every check throws on failure and blocks the deploy. |
+| `package-lock.json` | Lockfile; do not read by hand. |
+
+There is no `.env.example` — it was removed. Create a local `.env.local`
+(git-ignored) containing `NEXT_PUBLIC_API_URL`.
 
 ### app/ (Next.js App Router)
 
@@ -151,13 +155,27 @@ Route groups `(auth)`, `(app)`, `(admin)` do not affect URLs.
 
 ## Key invariants and gotchas
 
-- The frontend requires `NEXT_PUBLIC_API_URL`; `createApiClient` throws if it is missing.
-- Seed parity: `admin@example.com` / `password123` (admin), `user@example.com` / `password123` (user), resources `Room A` and `Room B`, both active.
-- Timezone: input is `date` + `startTime`/`endTime` in `America/Los_Angeles`; storage is UTC; responses include both UTC and local ISO fields.
+- `NEXT_PUBLIC_API_URL` is required **at build time** (it is inlined). It is not
+  validated at startup: when unset, `createApiClient` substitutes `""` and every
+  request fails with `ApiError(INTERNAL, "NEXT_PUBLIC_API_URL is not configured")`.
+  With no backend reachable, `SessionProvider` degrades to `anonymous` and `/`
+  redirects to `/login`.
+- Seed parity (backend responsibility): `admin@example.com` / `password123` (admin), `user@example.com` / `password123` (user), resources `Room A` and `Room B`, both active.
+- Timezone: the frontend submits `date` + `startTime`/`endTime` strings interpreted
+  in `America/Los_Angeles` and renders `startAtLocal`/`endAtLocal` from responses.
+  **The backend owns all conversion and DST rejection.** `lib/time.ts` is
+  best-effort and its two UTC converters are unused; only `formatSeattleRange` is
+  live.
 - Error envelope: `{ "error": { "code", "message", "details"? } }`.
-- Overlap is half-open `[startAt, endAt)`, per resource, booked appointments only.
+- Overlap is half-open `[startAt, endAt)`, per resource, booked appointments only —
+  enforced by the **backend and PostgreSQL**, not in this repo.
 - Cancel is a soft delete (status `cancelled`); resource delete is deactivation (`active: false`).
+- `DELETE /users/{id}` is a hard delete; the API refuses it for yourself, the last admin, or a user with appointments.
 - There is no `GET /appointments/{id}`. The reschedule page lists appointments and finds the target locally.
+- Every page is a client component except the two thin `Suspense` shells for
+  `/appointments/new` and `/appointments/[id]/reschedule`.
+- `route-guard.tsx` renders children before redirecting; it is a convenience, not a
+  security boundary.
 
 ## Regenerate the contract
 
@@ -166,3 +184,23 @@ npm run contract:generate
 ```
 
 This runs `tsx scripts/generate-contract.ts` and writes `contract/out/openapi.json`.
+
+The output is **git-ignored** (`/contract/out/`) and is not present in a fresh
+checkout. It must be generated before the backend team can read the machine
+contract. Note that the generated `servers` URL is `http://localhost:4000`, which
+disagrees with the `127.0.0.1:4001` stated in the prose docs.
+
+## Tests and CI
+
+`npm test` runs Vitest over `tests/schemas.test.ts` and `tests/time.test.ts` only.
+There is no coverage for the HTTP client, session context, DST edge cases, or the
+overlap invariant.
+
+`.github/workflows/local-ci.yml` runs `npm ci`, `npm run typecheck`,
+`npm run lint`, `npm test`, and `npm run build` as separate steps. Any failure
+blocks the deploy — `servy-cli` restarts the service only after all five pass, and
+only on `push` (never on a pull request).
+
+When editing that workflow: in PowerShell, **setting `$LASTEXITCODE` does not fail
+a step.** Use `throw`. An unconditional `exit 0` at the end will silently defeat
+every guard above it — that was the previous bug.

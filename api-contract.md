@@ -3,10 +3,23 @@
 ## Context
 
 - The frontend is built first. CalendarSite is the Next.js client.
-- The backend is a separate service written in a non-TypeScript, non-JavaScript language.
+- The backend is a separate service written in **Go** (`CalendarBackend`), not TypeScript or JavaScript.
 - The contract is the single source of truth between the two. It is emitted as an OpenAPI document generated from the frontend's Zod schemas.
 - The frontend calls the backend directly through an HTTP client typed against the contract.
 - MCP over HTTP (`POST /mcp`) is backend-only. The frontend consumes the REST API only.
+
+> **Status note.** This is the pre-implementation contract document. The backend
+> now exists and supersedes it wherever they differ. The cross-repo reference is
+> `../documentation/unified-documentation.md`. In particular:
+>
+> - `DELETE /users/{id}` is implemented and documented below.
+> - The generated document, `contract/out/openapi.json`, is **not committed** — it
+>   is git-ignored and must be produced with `npm run contract:generate`.
+> - That generated document declares the backend at `http://localhost:4000`,
+>   while this file and `backend-handoff.md` say `127.0.0.1:4001`. See the risk
+>   list in the unified document.
+> - The DST rules below are enforced by the **backend**; the frontend's
+>   `lib/time.ts` helpers are best-effort and are not on any production path.
 
 ## Locked decisions
 
@@ -28,6 +41,9 @@
 - UI visibility based on role is a convenience only. It is never a security boundary.
 
 ## API surface
+
+`GET /healthz` on the same service is an unauthenticated liveness probe returning
+`200 {"status":"ok"}`. It is not registered in the generated OpenAPI document.
 
 ### Auth
 
@@ -97,6 +113,9 @@ Codes: `INVALID_INPUT`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`,
 - Requests send `Authorization: Bearer <token>`.
 - Tokens expire 24 hours after issue.
 - `auth.login` returns `{ "token": "...", "expiresAt": "..." }`.
+- Passwords are argon2id-hashed and must be at least 8 characters.
+- Email is trimmed and lowercased before storage and comparison.
+- Tokens are stored hashed (SHA-256) in a `sessions` table; the plaintext is never persisted.
 
 ## Datetime contract
 
