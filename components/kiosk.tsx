@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { AgendaBody, useDayAgenda } from "@/components/day-agenda";
 import { useNow } from "@/lib/use-now";
 import { formatFullDate, seattleClock, seattleToday } from "@/lib/time";
@@ -22,7 +21,6 @@ export function Kiosk() {
 function KioskView({ now }: { now: Date }) {
   const today = seattleToday(now);
   const { appointments, resources, error, loaded } = useDayAgenda(today);
-  const [includeCancelled, setIncludeCancelled] = useState(false);
 
   // Seattle wall-clock time, from the same zone helpers the agenda uses, so the kiosk
   // cannot disagree with the list beside it about what time it is.
@@ -55,8 +53,10 @@ function KioskView({ now }: { now: Date }) {
           appointments={appointments}
           resources={resources}
           error={error}
-          includeCancelled={includeCancelled}
-          onToggleCancelled={() => setIncludeCancelled((prev) => !prev)}
+          // Cancelled bookings are always listed, with no toggle. A booking that was called
+          // off is exactly what somebody standing in front of the screen needs to know: a
+          // room that looks free is one they may have been told to use.
+          showCancelled
           // No "Book a room" button: nobody books from a wall display.
           showEmptyAction={false}
           // And no finished bookings: a display should be about now and next, not about

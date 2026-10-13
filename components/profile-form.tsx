@@ -2,65 +2,41 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ProfileUpdateInput, User } from "@/contract";
+import type { User } from "@/contract";
 import { profileUpdateInputSchema, userLabel } from "@/contract";
 import { getApiClient, type ApiError } from "@/lib/api";
 import { useSession } from "@/lib/session/session-context";
 import { ErrorBanner } from "@/components/error-banner";
+import {
+  birthdayIsPartial,
+  draftToProfile,
+  ProfileFields,
+  profileDraft,
+} from "@/components/profile-fields";
 import { firstZodMessage } from "@/lib/validation";
-
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
 
 const api = getApiClient();
 
-type Birthday = { month: string; day: string };
-
-function initialBirthday(user: User): Birthday {
-  return {
-    month: user.birthMonth == null ? "" : String(user.birthMonth),
-    day: user.birthDay == null ? "" : String(user.birthDay),
-  };
-}
-
 export function ProfileForm({ user }: { user: User }) {
   const { setUser } = useSession();
-  const [displayName, setDisplayName] = useState(user.displayName ?? "");
-  const [pronouns, setPronouns] = useState(user.pronouns ?? "");
-  const [jobTitle, setJobTitle] = useState(user.jobTitle ?? "");
-  const [bio, setBio] = useState(user.bio ?? "");
-  const [birthday, setBirthday] = useState<Birthday>(initialBirthday(user));
+  const [draft, setDraft] = useState(() => profileDraft(user));
   const [pending, setPending] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<ApiError | string | null>(null);
-
-  const birthdayPartial =
-    (birthday.month === "") !== (birthday.day === "");
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setSaved(false);
 
-    if (birthdayPartial) {
+    if (birthdayIsPartial(draft)) {
       setError("Please provide both a birth month and a day, or neither.");
       return;
     }
 
-    // An empty text field clears the value, which the API expects as an explicit
-    // null. A completely empty birthday clears both parts together.
-    const payload: ProfileUpdateInput = {
-      displayName: displayName.trim() === "" ? null : displayName.trim(),
-      pronouns: pronouns.trim() === "" ? null : pronouns.trim(),
-      jobTitle: jobTitle.trim() === "" ? null : jobTitle.trim(),
-      bio: bio.trim() === "" ? null : bio.trim(),
-      ...(birthday.month === ""
-        ? { birthMonth: null, birthDay: null }
-        : { birthMonth: Number(birthday.month), birthDay: Number(birthday.day) }),
-    };
-
+    // clearWhenEmpty: on an existing profile a blank birthday means "remove it", which the
+    // API is told with an explicit null pair.
+    const payload = draftToProfile(draft, { clearWhenEmpty: true });
     const parsed = profileUpdateInputSchema.safeParse(payload);
     if (!parsed.success) {
       setError(firstZodMessage(parsed.error));
@@ -89,85 +65,11 @@ export function ProfileForm({ user }: { user: User }) {
         </p>
       </div>
 
-      <label className="block text-sm">
-        Display name
-        <input
-          value={displayName}
-          onChange={(event) => setDisplayName(event.target.value)}
-          placeholder={user.email}
-          maxLength={100}
-          className="mt-1 block w-full rounded border px-2 py-1"
-        />
-        <span className="text-xs text-zinc-500">
-          Leave blank to show your email address instead.
-        </span>
-      </label>
-
-      <fieldset className="text-sm">
-        <legend>Birthday</legend>
-        <div className="mt-1 flex items-center gap-2">
-          <select
-            value={birthday.month}
-            onChange={(event) =>
-              setBirthday((prev) => ({ ...prev, month: event.target.value }))
-            }
-            className="rounded border px-2 py-1"
-          >
-            <option value="">Month</option>
-            {MONTHS.map((name, index) => (
-              <option key={name} value={index + 1}>
-                {name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            min={1}
-            max={31}
-            value={birthday.day}
-            onChange={(event) =>
-              setBirthday((prev) => ({ ...prev, day: event.target.value }))
-            }
-            placeholder="Day"
-            className="w-20 rounded border px-2 py-1"
-          />
-        </div>
-        <span className="text-xs text-zinc-500">
-          Month and day only — no year is stored.
-        </span>
-      </fieldset>
-
-      <label className="block text-sm">
-        Pronouns
-        <input
-          value={pronouns}
-          onChange={(event) => setPronouns(event.target.value)}
-          maxLength={50}
-          className="mt-1 block w-full rounded border px-2 py-1"
-        />
-      </label>
-
-      <label className="block text-sm">
-        Job title / team
-        <input
-          value={jobTitle}
-          onChange={(event) => setJobTitle(event.target.value)}
-          maxLength={100}
-          className="mt-1 block w-full rounded border px-2 py-1"
-        />
-      </label>
-
-      <label className="block text-sm">
-        About
-        <textarea
-          value={bio}
-          onChange={(event) => setBio(event.target.value)}
-          maxLength={500}
-          rows={3}
-          className="mt-1 block w-full rounded border px-2 py-1"
-        />
-        <span className="text-xs text-zinc-500">{bio.length}/500</span>
-      </label>
+      <ProfileFields
+        draft={draft}
+        onChange={setDraft}
+        emailForPlaceholder={user.email}
+      />
 
       <ErrorBanner error={error} />
       {saved && <p className="text-sm text-green-700">Saved.</p>}

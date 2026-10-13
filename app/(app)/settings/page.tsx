@@ -6,6 +6,7 @@ import {
   DangerZone,
   ProfileForm,
 } from "@/components/profile-form";
+import { PasswordReset } from "@/components/password-reset";
 
 export default function SettingsPage() {
   const { user, status } = useSession();
@@ -22,6 +23,7 @@ export default function SettingsPage() {
       <h1 className="text-xl font-semibold">Settings</h1>
       <AccountSummary user={user} />
       <ProfileForm user={user} />
+      <PasswordReset user={user} />
       <DangerZone user={user} />
     </div>
   );

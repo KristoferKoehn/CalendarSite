@@ -202,7 +202,7 @@ export function AgendaBody({
   appointments,
   resources,
   error,
-  includeCancelled,
+  showCancelled,
   onToggleCancelled,
   showEmptyAction = true,
   hideFinished: dropFinished = false,
@@ -216,12 +216,20 @@ export function AgendaBody({
   appointments: Appointment[];
   resources: Resource[];
   error: ApiError | null;
-  includeCancelled: boolean;
-  onToggleCancelled: () => void;
   /** The kiosk hides "Book a room": it is a display, not a console. */
   showEmptyAction?: boolean;
   /** The kiosk also hides bookings that are over, keeping the display about now and next. */
   hideFinished?: boolean;
+  /**
+   * Whether cancelled bookings are listed.
+   *
+   * The day view starts with them hidden and offers a toggle; the kiosk always shows them,
+   * because a booking that was called off is exactly what somebody standing in front of the
+   * screen needs to know — a room that looks free but is not.
+   */
+  showCancelled: boolean;
+  /** Omit to render no toggle, which is what the kiosk does. */
+  onToggleCancelled?: () => void;
 }) {
   const roomNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -230,15 +238,18 @@ export function AgendaBody({
   }, [resources]);
 
   const listed = useMemo(() => {
-    // Cancelled bookings obey the toggle; finished ones are dropped outright when the
-    // view asks for it, because no toggle should bring back something already over.
-    const kept = appointments.filter((a) => includeCancelled || a.status !== "cancelled");
+    // Cancelled bookings obey the toggle unless the caller always wants them. Finished ones
+    // are dropped outright when the view asks for it, because no toggle should bring back
+    // something already over.
+    const kept = showCancelled
+      ? appointments
+      : appointments.filter((a) => a.status !== "cancelled");
     const filtered = dropFinished ? hideFinished(kept, now) : kept;
     return filtered.slice().sort((a, b) => {
       const byStart = a.startAtLocal.localeCompare(b.startAtLocal);
       return byStart !== 0 ? byStart : a.title.localeCompare(b.title);
     });
-  }, [appointments, includeCancelled, dropFinished, now]);
+  }, [appointments, showCancelled, dropFinished, now]);
 
   const summary = useMemo(() => {
     let active = 0;
@@ -337,13 +348,13 @@ export function AgendaBody({
         </ul>
       )}
 
-      {summary.cancelled > 0 && (
+      {summary.cancelled > 0 && onToggleCancelled && (
         <button
           type="button"
           onClick={onToggleCancelled}
           className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
         >
-          {includeCancelled
+          {showCancelled
             ? `Hide ${summary.cancelled} cancelled`
             : `Show ${summary.cancelled} cancelled`}
         </button>
@@ -508,7 +519,7 @@ function Agenda({
         appointments={appointments}
         resources={resources}
         error={error}
-        includeCancelled={includeCancelled}
+        showCancelled={includeCancelled}
         onToggleCancelled={() => setIncludeCancelled((prev) => !prev)}
       />
     </div>

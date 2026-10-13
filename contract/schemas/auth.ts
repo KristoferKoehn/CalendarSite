@@ -3,10 +3,33 @@ import { emailSchema, isoTimestampSchema, uuidSchema } from "./common";
 
 export const passwordSchema = z.string().min(8);
 
-export const registerInputSchema = z.object({
-  email: emailSchema,
-  password: passwordSchema,
-});
+/**
+ * Creating an account, with the profile fields from `PATCH /auth/me` alongside it.
+ *
+ * The profile is optional here, so signing up stays a short form for anyone who wants that
+ * and a complete one for anyone who does not want to revisit Settings. Everything except the
+ * credentials is nullable because "left blank" is a real answer for all of it.
+ *
+ * The birthday is month and day only, and must arrive as a pair or not at all — sending one
+ * without the other is a mistake worth refusing rather than dropping quietly.
+ */
+export const registerInputSchema = z
+  .object({
+    email: emailSchema,
+    password: passwordSchema,
+    displayName: z.string().trim().max(100).nullable().optional(),
+    birthMonth: z.number().int().min(1).max(12).nullable().optional(),
+    birthDay: z.number().int().min(1).max(31).nullable().optional(),
+    pronouns: z.string().trim().max(50).nullable().optional(),
+    jobTitle: z.string().trim().max(100).nullable().optional(),
+    bio: z.string().trim().max(500).nullable().optional(),
+  })
+  .refine(
+    (value) =>
+      (value.birthMonth === undefined && value.birthDay === undefined) ||
+      (value.birthMonth !== undefined && value.birthDay !== undefined),
+    { message: "Give both a month and a day, or neither", path: ["birthDay"] },
+  );
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 
 export const loginInputSchema = z.object({
