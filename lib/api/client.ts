@@ -6,11 +6,14 @@ import type {
   AppointmentRescheduleInput,
   CreateResourceInput,
   DeleteSelfOutput,
+  ForgotPasswordInput,
   LoginInput,
   LoginOutput,
   ProfileUpdateInput,
   RegisterInput,
   RegisterOutput,
+  ResetPasswordInput,
+  ResetPasswordOutput,
   Resource,
   UpdateResourceInput,
   UpdateUserInput,
@@ -23,6 +26,16 @@ export interface ApiClient {
   register(input: RegisterInput): Promise<Result<RegisterOutput, ApiError>>;
   login(input: LoginInput): Promise<Result<LoginOutput, ApiError>>;
   logout(): void;
+  /**
+   * Request a password reset link. Answers the same way whether or not the address
+   * has an account, so callers must not branch on the result to infer existence.
+   */
+  forgotPassword(input: ForgotPasswordInput): Promise<Result<ResetPasswordOutput, ApiError>>;
+  /**
+   * Redeem a reset link and set a new password. Invalidates every existing session
+   * for the account.
+   */
+  resetPassword(input: ResetPasswordInput): Promise<Result<ResetPasswordOutput, ApiError>>;
   me(): Promise<Result<User, ApiError>>;
   /** Update the caller's own profile. Omitted fields are left alone. */
   updateProfile(input: ProfileUpdateInput): Promise<Result<User, ApiError>>;

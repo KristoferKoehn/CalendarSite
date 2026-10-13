@@ -7,9 +7,12 @@ import {
   appointmentOwnerLabel,
   appointmentSchema,
   errorEnvelopeSchema,
+  forgotPasswordInputSchema,
   formatBirthday,
   loginInputSchema,
   profileUpdateInputSchema,
+  resetPasswordInputSchema,
+  resetPasswordOutputSchema,
   userLabel,
   userSchema,
 } from "@/contract";
@@ -314,5 +317,34 @@ describe("errorEnvelopeSchema", () => {
     for (const code of Object.values(ErrorCodes)) {
       expect(errorMessage(new ApiError(code, ""))).not.toBe("");
     }
+  });
+});
+
+describe("password reset schemas", () => {
+  it("accepts a reset request and rejects a malformed address", () => {
+    expect(forgotPasswordInputSchema.safeParse({ email: "a@example.com" }).success).toBe(true);
+    expect(forgotPasswordInputSchema.safeParse({ email: "nope" }).success).toBe(false);
+    expect(forgotPasswordInputSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("requires a token and a long enough new password", () => {
+    expect(
+      resetPasswordInputSchema.safeParse({ token: "abc", newPassword: "long-enough" }).success,
+    ).toBe(true);
+
+    // An empty token is the case a link missing its query string produces.
+    const noToken = resetPasswordInputSchema.safeParse({ token: "", newPassword: "long-enough" });
+    expect(noToken.success).toBe(false);
+
+    const short = resetPasswordInputSchema.safeParse({ token: "abc", newPassword: "short" });
+    expect(short.success).toBe(false);
+  });
+
+  it("carries no token or user in the output, because the server returns 204", () => {
+    // The absence is the contract: there is nothing to read back, which is also why
+    // the client must not expect a body.
+    expect(Object.keys(resetPasswordOutputSchema.shape)).toEqual(["ok"]);
+    expect(resetPasswordOutputSchema.safeParse({ ok: true }).success).toBe(true);
+    expect(resetPasswordOutputSchema.safeParse({ ok: false }).success).toBe(false);
   });
 });

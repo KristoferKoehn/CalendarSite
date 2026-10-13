@@ -50,6 +50,8 @@ Authorization values: `public`, `user`, `admin`, or `owner or admin`.
 |---|---|---|---|---|
 | POST | `/auth/register` | public | `{ "email": string, "password": string }` | `201` `{ "userId": string }` |
 | POST | `/auth/login` | public | `{ "email": string, "password": string }` | `200` `{ "token": string, "expiresAt": string }` |
+| POST | `/auth/forgot-password` | public | `{ "email": string }` | `204`, no body |
+| POST | `/auth/reset-password` | public | `{ "token": string, "newPassword": string }` | `204`, no body |
 | GET | `/auth/me` | user | none | `200` `User` |
 | DELETE | `/auth/me` | user | none | `200` `User` (the deleted user) |
 
@@ -236,8 +238,9 @@ deleted owner; do not look the owner up by `userId`.
 
 ## Rate limiting
 
-`POST /auth/login` and `POST /auth/register` are throttled per caller **and** per
-account, using a sliding window over failed attempts:
+`POST /auth/login`, `POST /auth/register`, `POST /auth/forgot-password` and
+`POST /auth/reset-password` are throttled per caller **and** per account, using a
+sliding window over failed attempts:
 
 - A correct password always succeeds. The per-caller limit is applied only after an
   attempt has failed, so an address that has accumulated failures for other accounts

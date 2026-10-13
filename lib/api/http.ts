@@ -6,6 +6,7 @@ import {
   errorEnvelopeSchema,
   loginOutputSchema,
   registerOutputSchema,
+  resetPasswordOutputSchema,
   resourceListOutputSchema,
   resourceSchema,
   userListOutputSchema,
@@ -16,11 +17,14 @@ import {
   type AppointmentListQuery,
   type AppointmentRescheduleInput,
   type CreateResourceInput,
+  type ForgotPasswordInput,
   type LoginInput,
   type LoginOutput,
   type ProfileUpdateInput,
   type RegisterInput,
   type RegisterOutput,
+  type ResetPasswordInput,
+  type ResetPasswordOutput,
   type Resource,
   type UpdateResourceInput,
   type UpdateUserInput,
@@ -39,6 +43,12 @@ type RequestOptions<T> = {
   body?: unknown;
   auth?: boolean;
   schema: ZodType<T>;
+  /**
+   * The endpoint answers 204 with no body, so there is nothing to parse. Without
+   * this the client would try to decode an empty body as JSON and report a bogus
+   * "Response was not valid JSON" for a request that actually succeeded.
+   */
+  noContent?: boolean;
 };
 
 export class HttpApiClient implements ApiClient {
@@ -70,6 +80,35 @@ export class HttpApiClient implements ApiClient {
       this.deps.tokenStore.set(result.value.token);
     }
     return result;
+  }
+
+  /**
+   * Ask for a reset link. Resolves the same way whether or not the address has an
+   * account — the server answers 204 either way, on purpose, so that this cannot be
+   * used to discover who has signed up.
+   */
+  async forgotPassword(input: ForgotPasswordInput): Promise<Result<ResetPasswordOutput, ApiError>> {
+    return this.request({
+      method: "POST",
+      path: "/auth/forgot-password",
+      body: input,
+      schema: resetPasswordOutputSchema,
+      noContent: true,
+    });
+  }
+
+  /**
+   * Redeem a reset link. On success every existing session for the account is
+   * invalidated server-side, so any token held elsewhere stops working.
+   */
+  async resetPassword(input: ResetPasswordInput): Promise<Result<ResetPasswordOutput, ApiError>> {
+    return this.request({
+      method: "POST",
+      path: "/auth/reset-password",
+      body: input,
+      schema: resetPasswordOutputSchema,
+      noContent: true,
+    });
   }
 
   logout(): void {
@@ -295,6 +334,21 @@ export class HttpApiClient implements ApiClient {
 
     if (!response.ok) {
       return err(await HttpApiClient.toApiError(response));
+    }
+
+    if (options.noContent) {
+      // The contract for these routes is "204, no body". Anything else would be a
+      // server-side change worth noticing, but it is not this client's job to police
+      // it, so the call simply succeeds.
+      const parsed = options.schema.safeParse({ ok: true });
+      if (!parsed.success) {
+        return err(
+          new ApiError(ErrorCodes.INTERNAL, "Unexpected response shape", {
+            status: response.status,
+          }),
+        );
+      }
+      return ok(parsed.data);
     }
 
     let payload: unknown;

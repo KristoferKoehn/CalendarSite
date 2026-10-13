@@ -76,6 +76,11 @@ export default function LoginPage() {
           Create one
         </Link>
       </p>
+      <p className="text-sm text-zinc-600">
+        <Link href="/forgot-password" className="underline">
+          Forgot your password?
+        </Link>
+      </p>
     </div>
   );
 }

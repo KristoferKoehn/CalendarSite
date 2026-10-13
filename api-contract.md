@@ -52,6 +52,8 @@
 |---|---|---|---|
 | POST | `/auth/register` | public | create user |
 | POST | `/auth/login` | public | return bearer token and `expiresAt` |
+| POST | `/auth/forgot-password` | public | `204`, no body. Rate limited, and answered identically whether or not the address has an account |
+| POST | `/auth/reset-password` | public | `204`, no body. Body `{ token, newPassword }`. Ends every existing session for the account |
 | GET | `/auth/me` | authenticated | return `id`, `email`, `role`, `isAgent` and profile details |
 | PATCH | `/auth/me` | authenticated | update **your own** profile |
 | DELETE | `/auth/me` | authenticated | delete your own account |
