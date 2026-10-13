@@ -40,10 +40,12 @@ export function ResourceRename({
     }
 
     // The same bounds the server enforces, checked here so a message appears without a round
-    // trip. A name-only object is valid because the update schema is partial.
+    // trip. A name-only object is valid because the update schema is partial. The message is
+    // written out rather than left to zod's default, which reads as "String must contain at
+    // least 1 character(s)" and is not something to put in front of a person.
     const parsed = createResourceInputSchema.pick({ name: true }).safeParse({ name: trimmed });
     if (!parsed.success) {
-      setError(firstZodMessage(parsed.error));
+      setError(trimmed === "" ? "Give the room a name." : firstZodMessage(parsed.error));
       return;
     }
 
