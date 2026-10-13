@@ -155,8 +155,16 @@ export default function AppointmentsPage() {
             const isConfirming = confirmingDeleteId === appointment.id;
 
             return (
-              <li key={appointment.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex-1">
+              // Wraps so the row's controls drop below the details on a narrow screen
+              // instead of pushing the page into horizontal scroll.
+              <li
+                key={appointment.id}
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3"
+              >
+                {/* min-w-0 is load-bearing: a flex child defaults to min-width:auto and
+                    so refuses to shrink below its content, which would let a long title
+                    or email push the row wider than the viewport. */}
+                <div className="min-w-0 flex-1">
                   <div className="font-medium">{appointment.title}</div>
                   {appointment.description && (
                     <div className="text-sm text-zinc-600">{appointment.description}</div>
