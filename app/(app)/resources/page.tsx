@@ -9,6 +9,7 @@ import { CARD_LIST, PAGE_TITLE, ROW_PADDING } from "@/lib/card";
 import { useSession } from "@/lib/session/session-context";
 import { ErrorBanner } from "@/components/error-banner";
 import { ResourceForm } from "@/components/resource-form";
+import { ResourceRename } from "@/components/resource-rename";
 
 const api = getApiClient();
 
@@ -21,6 +22,8 @@ export default function ResourcesPage() {
   const [error, setError] = useState<ApiError | null>(null);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Resource | null>(null);
+  /** The resource currently being renamed in place, if any. */
+  const [renaming, setRenaming] = useState<Resource | null>(null);
 
   async function reload() {
     setLoading(true);
@@ -62,6 +65,23 @@ export default function ResourcesPage() {
     const result = await api.updateResource(editing.id, input);
     if (result.ok) {
       setEditing(null);
+      await reload();
+      return null;
+    }
+    return result.error;
+  }
+
+  /**
+   * Rename a room, sending only the name.
+   *
+   * A partial PATCH, so the description and timezone are left exactly as they were rather than
+   * being echoed back from a form that never showed them.
+   */
+  async function handleRename(resource: Resource, name: string): Promise<ApiError | null> {
+    setError(null);
+    const result = await api.updateResource(resource.id, { name });
+    if (result.ok) {
+      setRenaming(null);
       await reload();
       return null;
     }
@@ -115,46 +135,72 @@ export default function ResourcesPage() {
         </div>
       ) : (
         <ul className={CARD_LIST}>
-          {resources.map((resource) => (
-            <li key={resource.id} className={`flex flex-wrap items-center gap-x-3 gap-y-2 ${ROW_PADDING}`}>
-              {/* min-w-0 so a long name or description wraps instead of widening the row. */}
-              <div className="min-w-0 flex-1">
-                <div className="font-medium text-zinc-900 dark:text-zinc-50">{resource.name}</div>
-                {resource.description && (
-                  <div className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-                    {resource.description}
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href={`/appointments/new?resourceId=${resource.id}`}
-                  className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                >
-                  Book
-                </Link>
-                {isAdmin && (
+          {resources.map((resource) => {
+            const isRenaming = renaming?.id === resource.id;
+            return (
+              <li key={resource.id} className={`flex flex-wrap items-center gap-x-3 gap-y-2 ${ROW_PADDING}`}>
+                {isRenaming ? (
+                  <ResourceRename
+                    resource={resource}
+                    onSubmit={(name) => handleRename(resource, name)}
+                    onCancel={() => setRenaming(null)}
+                  />
+                ) : (
                   <>
-                    <button
-                      onClick={() => {
-                        setCreating(false);
-                        setEditing(resource);
-                      }}
-                      className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeactivate(resource.id)}
-                      className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                    >
-                      Deactivate
-                    </button>
+                    {/* min-w-0 so a long name or description wraps instead of widening the row. */}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-zinc-900 dark:text-zinc-50">{resource.name}</div>
+                      {resource.description && (
+                        <div className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+                          {resource.description}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/appointments/new?resourceId=${resource.id}`}
+                        className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                      >
+                        Book
+                      </Link>
+                      {isAdmin && (
+                        <>
+                          {/* Named for what it does, rather than Edit opening a form where
+                              renaming is one field among three. */}
+                          <button
+                            onClick={() => {
+                              setCreating(false);
+                              setEditing(null);
+                              setRenaming(resource);
+                            }}
+                            className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                          >
+                            Rename
+                          </button>
+                          <button
+                            onClick={() => {
+                              setCreating(false);
+                              setRenaming(null);
+                              setEditing(resource);
+                            }}
+                            className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                          >
+                            Details
+                          </button>
+                          <button
+                            onClick={() => handleDeactivate(resource.id)}
+                            className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                          >
+                            Deactivate
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
