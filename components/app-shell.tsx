@@ -19,14 +19,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-zinc-200 px-6 py-3">
         <nav className="flex items-center gap-4 text-sm">
-          <Link href="/appointments" className="font-semibold">
+          <Link href="/today" className="font-semibold">
             CalendarSite
           </Link>
-          <Link href="/resources" className="hover:underline">
-            Resources
+          <Link href="/today" className="hover:underline">
+            Today
           </Link>
           <Link href="/appointments" className="hover:underline">
             Appointments
+          </Link>
+          <Link href="/resources" className="hover:underline">
+            Resources
           </Link>
           <Link href="/people" className="hover:underline">
             People
