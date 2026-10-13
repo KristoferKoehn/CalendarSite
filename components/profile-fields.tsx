@@ -80,6 +80,14 @@ export function draftToProfile(
   draft: ProfileDraft,
   { clearWhenEmpty = false }: { clearWhenEmpty?: boolean } = {},
 ): ProfileUpdateInput {
+  // Refuse a half-filled birthday rather than dropping it. Dropping it produces a perfectly
+  // valid payload that quietly means "no birthday", so a caller that forgot to check would
+  // save the wrong thing and report success. Throwing cannot be ignored the way a silent
+  // omission can; both callers check first and show the reason inline.
+  if (birthdayIsPartial(draft)) {
+    throw new Error("birthdayIsPartial: check before converting to a profile");
+  }
+
   const complete = draft.birthMonth !== "" && draft.birthDay !== "";
   const birthday = complete
     ? { birthMonth: Number(draft.birthMonth), birthDay: Number(draft.birthDay) }
