@@ -198,6 +198,32 @@ export function describeSlot(slot: TimeSlot, now: Date = new Date()): SlotStatus
   };
 }
 
+/**
+ * "14:05" for an instant, in Seattle. This is the current wall-clock time, which is a
+ * different question from `localClock`, and `localClock` is not a substitute: it slices
+ * a string that already carries a Seattle offset, so handing it a UTC instant would
+ * report the UTC hour.
+ */
+export function seattleClock(now: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: SEATTLE_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(now);
+}
+
+/** "October 12, 2026" for a YYYY-MM-DD calendar date, without time zone conversion. */
+export function formatFullDate(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
 /** A short, human countdown: "in 12 min", "now", "started 5 min ago". */
 export function formatRelative(minutes: number): string {
   const whole = Math.round(minutes);

@@ -16,7 +16,11 @@ type MonthGridProps = {
   /** Entries per Seattle calendar date, already sorted. */
   byDate: Map<string, CalendarEntry[]>;
   selected: string | null;
-  onSelect: (date: string) => void;
+  /**
+   * Optional. Without it the day numbers are plain text rather than buttons, so a cell
+   * does not present itself as clickable when clicking it would do nothing.
+   */
+  onSelect?: (date: string) => void;
 };
 
 /**
@@ -61,6 +65,17 @@ export function MonthGrid({ days, byDate, selected, onSelect }: MonthGridProps) 
   );
 }
 
+/** Shared so the button and plain-text forms of the day number look identical. */
+function dayNumberClass(day: CalendarDay): string {
+  return `inline-flex h-6 w-6 items-center justify-center rounded-full text-xs tabular-nums transition-colors ${
+    day.isToday
+      ? "bg-zinc-900 font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900"
+      : day.inMonth
+        ? "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+        : "text-zinc-400 hover:bg-zinc-100 dark:text-zinc-600 dark:hover:bg-zinc-800"
+  }`;
+}
+
 function DayCell({
   day,
   entries,
@@ -70,7 +85,7 @@ function DayCell({
   day: CalendarDay;
   entries: CalendarEntry[];
   isSelected: boolean;
-  onSelect: (date: string) => void;
+  onSelect?: (date: string) => void;
 }) {
   const live = entries.filter((entry) => !entry.cancelled);
   const shown = live.slice(0, CELL_EVENT_LIMIT);
@@ -90,24 +105,22 @@ function DayCell({
         isSelected ? "ring-2 ring-inset ring-zinc-900 dark:ring-zinc-100" : ""
       }`}
     >
-      {/* The day number is the button rather than the whole cell, so the click target
-          is the label a reader is already aiming at, and the cell keeps room for
-          events without a full-cell hit area swallowing them. */}
-      <button
-        type="button"
-        onClick={() => onSelect(day.date)}
-        aria-label={`Show bookings for ${day.date}`}
-        aria-pressed={isSelected}
-        className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs tabular-nums transition-colors ${
-          day.isToday
-            ? "bg-zinc-900 font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900"
-            : day.inMonth
-              ? "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              : "text-zinc-400 hover:bg-zinc-100 dark:text-zinc-600 dark:hover:bg-zinc-800"
-        }`}
-      >
-        {day.dayOfMonth}
-      </button>
+      {/* The day number is the button rather than the whole cell, so the click target is
+          the label a reader is already aiming at, and the cell keeps room for events
+          without a full-cell hit area swallowing them. With no handler it is plain text. */}
+      {onSelect ? (
+        <button
+          type="button"
+          onClick={() => onSelect(day.date)}
+          aria-label={`Show bookings for ${day.date}`}
+          aria-pressed={isSelected}
+          className={dayNumberClass(day)}
+        >
+          {day.dayOfMonth}
+        </button>
+      ) : (
+        <span className={dayNumberClass(day)}>{day.dayOfMonth}</span>
+      )}
 
       <ul className="mt-1 space-y-0.5">
         {shown.map((entry) => (
@@ -128,15 +141,22 @@ function DayCell({
         ))}
       </ul>
 
-      {hiddenCount > 0 && (
-        <button
-          type="button"
-          onClick={() => onSelect(day.date)}
-          className="mt-0.5 px-1 text-[11px] text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
-        >
-          +{hiddenCount} more
-        </button>
-      )}
+      {/* "+N more" is only actionable when the cell is: with no handler there is nothing
+          to expand into, so the count is plain text. */}
+      {hiddenCount > 0 &&
+        (onSelect ? (
+          <button
+            type="button"
+            onClick={() => onSelect(day.date)}
+            className="mt-0.5 px-1 text-[11px] text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
+          >
+            +{hiddenCount} more
+          </button>
+        ) : (
+          <span className="mt-0.5 block px-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+            +{hiddenCount} more
+          </span>
+        ))}
     </div>
   );
 }

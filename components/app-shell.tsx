@@ -28,10 +28,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             CalendarSite
           </Link>
           <Link href="/today" className="hover:underline">
-            Today
+            Calendar
           </Link>
-          <Link href="/schedule" className="hover:underline">
-            Schedule
+          <Link href="/kiosk" className="hover:underline">
+            Kiosk
           </Link>
           <Link href="/appointments" className="hover:underline">
             Appointments

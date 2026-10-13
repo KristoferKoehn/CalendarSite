@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   describeSlot,
   formatDuration,
+  formatFullDate,
   formatLongDate,
   formatRelative,
   formatSeattleRange,
   localClock,
+  seattleClock,
   seattleToday,
   seattleWallTimeToLocalIso,
   seattleWallTimeToUtc,
@@ -180,5 +182,46 @@ describe("describeSlot", () => {
     );
     expect(dst.phase).toBe("active");
     expect(Math.round(dst.minutesUntilEnd)).toBe(30);
+  });
+});
+
+describe("seattleClock", () => {
+  it("reports the Seattle wall clock, not UTC", () => {
+    // 19:00 UTC in summer is 12:00 in Seattle (PDT, UTC-7). Getting this wrong would put
+    // the wrong hour on the kiosk, which is the one thing it exists to show.
+    expect(seattleClock(new Date("2026-07-15T19:00:00Z"))).toBe("12:00");
+  });
+
+  it("handles standard time as well as daylight time", () => {
+    // 20:00 UTC in winter is 12:00 in Seattle (PST, UTC-8).
+    expect(seattleClock(new Date("2026-01-15T20:00:00Z"))).toBe("12:00");
+  });
+
+  it("pads to two digits", () => {
+    // 16:05 UTC in summer is 09:05 in Seattle.
+    expect(seattleClock(new Date("2026-07-15T16:05:00Z"))).toBe("09:05");
+  });
+
+  it("is not confused by the date rolling over", () => {
+    // 02:00 UTC on the 13th is 19:00 on the 12th in Seattle.
+    expect(seattleClock(new Date("2026-07-13T02:00:00Z"))).toBe("19:00");
+    expect(seattleToday(new Date("2026-07-13T02:00:00Z"))).toBe("2026-07-12");
+  });
+
+  it("is a different question from localClock", () => {
+    // localClock slices a string that already carries a Seattle offset; handing it a UTC
+    // instant would report the UTC hour. This pins the distinction so the two are not
+    // swapped by mistake.
+    expect(localClock("2026-07-15T12:00:00-07:00")).toBe("12:00");
+    expect(seattleClock(new Date("2026-07-15T19:00:00Z"))).toBe("12:00");
+    expect(localClock("2026-07-15T19:00:00Z")).toBe("19:00");
+  });
+});
+
+describe("formatFullDate", () => {
+  it("spells out the date without shifting the day", () => {
+    expect(formatFullDate("2026-07-12")).toBe("July 12, 2026");
+    expect(formatFullDate("2026-01-01")).toBe("January 1, 2026");
+    expect(formatFullDate("2028-02-29")).toBe("February 29, 2028");
   });
 });

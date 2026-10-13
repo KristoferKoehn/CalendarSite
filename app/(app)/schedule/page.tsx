@@ -1,7 +1,7 @@
 "use client";
 
-import { ScheduleMonth } from "@/components/schedule-month";
+import { MonthViewSuspended } from "@/components/calendar-views";
 
 export default function SchedulePage() {
-  return <ScheduleMonth />;
+  return <MonthViewSuspended />;
 }
