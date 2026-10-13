@@ -9,6 +9,7 @@ import { ErrorBanner } from "@/components/error-banner";
 import { WeekStrip } from "@/components/week-strip";
 import { useNow } from "@/lib/use-now";
 import { weekDays, canBookEmptyDay, hideFinished } from "@/lib/calendar";
+import { CARD_ACCENT, CARD_SURFACE_CANCELLED, ROW_PADDING } from "@/lib/card";
 import {
   addDays,
   describeSlot,
@@ -128,7 +129,7 @@ function AgendaRow({
   }
 
   return (
-    <li className="flex gap-3 px-4 py-2.5 sm:gap-4 sm:px-5">
+    <li className={`flex gap-3 ${ROW_PADDING} sm:gap-4`}>
       {/* Time gutter: fixed width, so the cards form a clean column. */}
       <div className={`w-12 shrink-0 pt-0.5 text-right text-sm tabular-nums ${style.time}`}>
         {localClock(appointment.startAtLocal)}
@@ -138,12 +139,12 @@ function AgendaRow({
       </div>
 
       <div
-        className={`relative flex flex-1 flex-wrap items-start gap-x-3 gap-y-1 overflow-hidden rounded-md border py-2.5 pl-4 pr-3 ${
-          cancelled ? "border-dashed border-zinc-200 bg-transparent dark:border-zinc-800" : style.card
+        className={`relative flex flex-1 flex-wrap items-start gap-x-3 gap-y-1 overflow-hidden py-2.5 pl-4 pr-3 ${
+          cancelled ? CARD_SURFACE_CANCELLED : style.card
         }`}
       >
         <span
-          className={`absolute inset-y-0 left-0 w-1 ${
+          className={`${CARD_ACCENT} ${
             cancelled ? "bg-zinc-200 dark:bg-zinc-800" : style.accent
           }`}
           aria-hidden="true"

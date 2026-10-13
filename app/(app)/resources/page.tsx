@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { CreateResourceInput, Resource } from "@/contract";
 import { getApiClient, type ApiError } from "@/lib/api";
 import { sortResources } from "@/lib/resources";
+import { CARD_LIST, PAGE_TITLE, ROW_PADDING } from "@/lib/card";
 import { useSession } from "@/lib/session/session-context";
 import { ErrorBanner } from "@/components/error-banner";
 import { ResourceForm } from "@/components/resource-form";
@@ -80,8 +81,8 @@ export default function ResourcesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Resources</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className={PAGE_TITLE}>Resources</h1>
         {isAdmin && (
           <button
             onClick={() => {
@@ -107,42 +108,51 @@ export default function ResourcesPage() {
       )}
 
       {resources.length === 0 && !creating ? (
-        <p className="text-sm text-zinc-500">No resources yet.</p>
+        <div className="rounded-lg border border-dashed border-zinc-300 px-6 py-10 text-center dark:border-zinc-700">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            {isAdmin ? "No resources yet. Add one to start taking bookings." : "No resources yet."}
+          </p>
+        </div>
       ) : (
-        <ul className="divide-y rounded border border-zinc-200">
+        <ul className={CARD_LIST}>
           {resources.map((resource) => (
-            <li key={resource.id} className="flex items-center gap-3 px-4 py-3">
-              <div className="flex-1">
-                <div className="font-medium">{resource.name}</div>
+            <li key={resource.id} className={`flex flex-wrap items-center gap-x-3 gap-y-2 ${ROW_PADDING}`}>
+              {/* min-w-0 so a long name or description wraps instead of widening the row. */}
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-zinc-900 dark:text-zinc-50">{resource.name}</div>
                 {resource.description && (
-                  <div className="text-sm text-zinc-500">{resource.description}</div>
+                  <div className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+                    {resource.description}
+                  </div>
                 )}
               </div>
-              <Link
-                href={`/appointments/new?resourceId=${resource.id}`}
-                className="rounded border px-2 py-1 text-sm"
-              >
-                Book
-              </Link>
-              {isAdmin && (
-                <>
-                  <button
-                    onClick={() => {
-                      setCreating(false);
-                      setEditing(resource);
-                    }}
-                    className="rounded border px-2 py-1 text-sm"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeactivate(resource.id)}
-                    className="rounded border px-2 py-1 text-sm"
-                  >
-                    Deactivate
-                  </button>
-                </>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/appointments/new?resourceId=${resource.id}`}
+                  className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                >
+                  Book
+                </Link>
+                {isAdmin && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setCreating(false);
+                        setEditing(resource);
+                      }}
+                      className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeactivate(resource.id)}
+                      className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    >
+                      Deactivate
+                    </button>
+                  </>
+                )}
+              </div>
             </li>
           ))}
         </ul>
