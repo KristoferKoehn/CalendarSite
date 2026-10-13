@@ -12,7 +12,7 @@ import { formatSeattleRange } from "@/lib/time";
 const api = getApiClient();
 
 export default function AppointmentsPage() {
-  const { status } = useSession();
+  const { user, status } = useSession();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
@@ -136,42 +136,49 @@ export default function AppointmentsPage() {
         <p className="text-sm text-zinc-500">No appointments.</p>
       ) : (
         <ul className="divide-y rounded border border-zinc-200">
-          {appointments.map((appointment) => (
-            <li key={appointment.id} className="flex items-center gap-3 px-4 py-3">
-              <div className="flex-1">
-                <div className="font-medium">{appointment.title}</div>
-                {appointment.description && (
-                  <div className="text-sm text-zinc-600">{appointment.description}</div>
+          {appointments.map((appointment) => {
+            // The server allows the owner or an admin to change a booking, so the
+            // controls shown match that exactly. This is a convenience, not a
+            // boundary: the API enforces it regardless of what is rendered.
+            const canModify =
+              appointment.userId === user?.id || user?.role === "admin";
+            return (
+              <li key={appointment.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1">
+                  <div className="font-medium">{appointment.title}</div>
+                  {appointment.description && (
+                    <div className="text-sm text-zinc-600">{appointment.description}</div>
+                  )}
+                  <div className="text-sm text-zinc-500">
+                    {formatSeattleRange(appointment.startAtLocal, appointment.endAtLocal)}
+                  </div>
+                  {/* Name captured at booking time, falling back to the email label.
+                      Both live on the appointment, so this still renders for an
+                      owner whose account has been deleted. */}
+                  <div className="text-sm text-zinc-500">
+                    {appointmentOwnerLabel(appointment)}
+                  </div>
+                  <div className="text-sm text-zinc-500">{appointment.status}</div>
+                </div>
+                {appointment.status === "booked" && canModify && (
+                  <>
+                    <Link
+                      href={`/appointments/${appointment.id}/reschedule`}
+                      className="rounded border px-2 py-1 text-sm"
+                    >
+                      Reschedule
+                    </Link>
+                    <button
+                      onClick={() => handleCancel(appointment.id)}
+                      className="rounded border px-2 py-1 text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </>
                 )}
-                <div className="text-sm text-zinc-500">
-                  {formatSeattleRange(appointment.startAtLocal, appointment.endAtLocal)}
-                </div>
-                {/* Name captured at booking time, falling back to the email label.
-                    Both live on the appointment, so this still renders for an
-                    owner whose account has been deleted. */}
-                <div className="text-sm text-zinc-500">
-                  {appointmentOwnerLabel(appointment)}
-                </div>
-                <div className="text-sm text-zinc-500">{appointment.status}</div>
-              </div>
-              {appointment.status === "booked" && (
-                <>
-                  <Link
-                    href={`/appointments/${appointment.id}/reschedule`}
-                    className="rounded border px-2 py-1 text-sm"
-                  >
-                    Reschedule
-                  </Link>
-                  <button
-                    onClick={() => handleCancel(appointment.id)}
-                    className="rounded border px-2 py-1 text-sm"
-                  >
-                    Cancel
-                  </button>
-                </>
-              )}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

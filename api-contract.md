@@ -139,7 +139,11 @@ return `FORBIDDEN` to non-admins.
 }
 ```
 
-Codes: `INVALID_INPUT`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `INTERNAL`.
+Codes: `INVALID_INPUT`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `RATE_LIMITED`, `INTERNAL`.
+
+`RATE_LIMITED` (429) is returned by the sign-in and sign-up endpoints after too
+many failed attempts. The response carries a `Retry-After` header giving the number
+of seconds to wait, so a client can back off correctly instead of retrying blind.
 
 ## Authentication
 

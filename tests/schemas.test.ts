@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ErrorCodes,
   appointmentCreateInputSchema,
   appointmentDeleteOutputSchema,
   appointmentListQuerySchema,
@@ -12,6 +13,8 @@ import {
   userLabel,
   userSchema,
 } from "@/contract";
+import { ApiError } from "@/lib/api/errors";
+import { errorMessage } from "@/lib/api/error-message";
 
 describe("appointmentSchema", () => {
   const valid = {
@@ -296,5 +299,20 @@ describe("errorEnvelopeSchema", () => {
       error: { code: "NOPE", message: "x" },
     });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts RATE_LIMITED, which the sign-in endpoints return", () => {
+    const result = errorEnvelopeSchema.safeParse({
+      error: { code: "RATE_LIMITED", message: "Too many attempts. Try again later." },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("maps every known code to a human message", () => {
+    // A missing entry in FALLBACKS is a type error, but assert it anyway so a new
+    // code cannot ship with a blank message.
+    for (const code of Object.values(ErrorCodes)) {
+      expect(errorMessage(new ApiError(code, ""))).not.toBe("");
+    }
   });
 });

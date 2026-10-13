@@ -231,7 +231,30 @@ deleted owner; do not look the owner up by `userId`.
 | `FORBIDDEN` | 403 | wrong role or not the owner |
 | `NOT_FOUND` | 404 | missing user, resource, or appointment, or inactive resource |
 | `CONFLICT` | 409 | overlapping booking, duplicate email, already cancelled, delete self / last admin |
+| `RATE_LIMITED` | 429 | too many failed sign-in or sign-up attempts; response carries `Retry-After` in seconds |
 | `INTERNAL` | 500 | unexpected errors |
+
+## Rate limiting
+
+`POST /auth/login` and `POST /auth/register` are throttled per caller **and** per
+account, using a sliding window over failed attempts:
+
+- A correct password always succeeds. The per-caller limit is applied only after an
+  attempt has failed, so an address that has accumulated failures for other accounts
+  cannot lock out someone signing in correctly — otherwise a shared office address
+  would break for everybody.
+- A successful sign-in clears that account's accrued failures, so a few typos do not
+  leave a person throttled.
+- Registration counts every attempt, successful or not, because account creation is
+  the expensive action.
+- Malformed requests (missing password, bad email) are rejected before the limit is
+  consulted and never consume an allowance.
+
+Tunable on the backend with `RATE_LIMIT_LOGIN_FAILURES` (default 5),
+`RATE_LIMIT_REGISTER_FAILURES` (default 3), and `RATE_LIMIT_WINDOW_SECONDS`
+(default 900). Behind a reverse proxy, set `TRUST_PROXY_HEADERS=true` so callers are
+distinguished by `X-Forwarded-For`; it is off by default because that header is
+client-supplied and trusting it blindly would let anyone bypass every limit.
 
 ## Authentication
 

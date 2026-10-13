@@ -7,6 +7,7 @@ const FALLBACKS: Record<ErrorCode, string> = {
   FORBIDDEN: "You do not have permission to do that.",
   NOT_FOUND: "Not found.",
   CONFLICT: "That conflicts with an existing item.",
+  RATE_LIMITED: "Too many attempts. Please wait a moment and try again.",
   INTERNAL: "Something went wrong.",
 };
 

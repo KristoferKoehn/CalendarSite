@@ -6,6 +6,7 @@ export const ErrorCodes = {
   FORBIDDEN: "FORBIDDEN",
   NOT_FOUND: "NOT_FOUND",
   CONFLICT: "CONFLICT",
+  RATE_LIMITED: "RATE_LIMITED",
   INTERNAL: "INTERNAL",
 } as const;
 
