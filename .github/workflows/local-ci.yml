@@ -19,7 +19,23 @@ jobs:
     name: Install, check, build, deploy
     runs-on: self-hosted
     env:
-      NEXT_PUBLIC_API_URL: https://couchcollective.software:4000
+      # The API is served from this same hostname, under a path, rather than on its own port.
+      # That matters for two reasons:
+      #
+      #   - It is on 443, so a network permitting only 80 and 443 is satisfied. A campus or
+      #     corporate network that drops traffic to other ports made every action fail while the
+      #     page itself loaded.
+      #   - It is same-origin, so the browser sends no preflight and never checks
+      #     Access-Control-Allow-Origin. There are no CORS headers to be missing or stripped in
+      #     transit, because none are needed.
+      #
+      # A subdomain would fix only the first: a different host is a different origin, and CORS
+      # stays in play. Caddy strips the /api prefix before forwarding, so the backend still
+      # serves /auth/login and friends at its root.
+      #
+      # This value is inlined into the bundle at build time, so it cannot be changed on the
+      # running server — only by a rebuild.
+      NEXT_PUBLIC_API_URL: https://couchcollective.software/api
     defaults:
       run:
         working-directory: C:\Users\ferna\Documents\CalendarSite
