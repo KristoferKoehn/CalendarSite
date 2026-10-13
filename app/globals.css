@@ -24,3 +24,60 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/*
+ * The kiosk's seconds indicators.
+ *
+ * Both are driven by a stylesheet animation rather than a JavaScript toggle, so they stay in
+ * step with the wall clock instead of with however often the tab happens to be scheduled. A
+ * background tab is throttled to roughly one timer per second, and a display left on for weeks
+ * accumulates that drift; an animation is interpolated from the document timeline and does not.
+ *
+ * `steps(1, end)` is what makes the colon a blink rather than a fade: the value holds and then
+ * flips, once per second, with no interpolation in between.
+ */
+@keyframes kiosk-blink {
+  0%,
+  49.999% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+/* One beat per second, easing back out, so the pulse reads as a heartbeat rather than a flicker. */
+@keyframes kiosk-pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.kiosk-blink {
+  animation: kiosk-blink 1s steps(1, end) infinite;
+}
+
+.kiosk-pulse {
+  animation: kiosk-pulse 1s ease-out infinite;
+}
+
+/*
+ * Nothing moves for anyone who asked for that. The indicator is decoration — the time is
+ * readable without it — so honouring the preference costs the screen nothing but its pulse.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .kiosk-blink,
+  .kiosk-pulse {
+    animation: none;
+  }
+}

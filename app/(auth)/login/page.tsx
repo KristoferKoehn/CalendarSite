@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { loginInputSchema } from "@/contract";
+import { LANDING } from "@/lib/landing";
 import { useSession } from "@/lib/session/session-context";
 import { firstZodMessage } from "@/lib/validation";
 
@@ -16,7 +17,7 @@ export default function LoginPage() {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    if (status === "authenticated") router.replace("/appointments");
+    if (status === "authenticated") router.replace(LANDING);
   }, [status, router]);
 
   async function handleSubmit(event: FormEvent) {
@@ -36,7 +37,7 @@ export default function LoginPage() {
       setError(result.message);
       return;
     }
-    router.replace("/appointments");
+    router.replace(LANDING);
   }
 
   return (

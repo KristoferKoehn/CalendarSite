@@ -7,6 +7,7 @@ import {
   ProfileForm,
 } from "@/components/profile-form";
 import { PasswordReset } from "@/components/password-reset";
+import { TimeFormatSetting } from "@/components/time-format-setting";
 
 export default function SettingsPage() {
   const { user, status } = useSession();
@@ -23,6 +24,7 @@ export default function SettingsPage() {
       <h1 className="text-xl font-semibold">Settings</h1>
       <AccountSummary user={user} />
       <ProfileForm user={user} />
+      <TimeFormatSetting />
       <PasswordReset user={user} />
       <DangerZone user={user} />
     </div>

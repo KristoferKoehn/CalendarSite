@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { profileUpdateInputSchema } from "@/contract";
 import { getApiClient } from "@/lib/api";
+import { LANDING } from "@/lib/landing";
 import { useSession } from "@/lib/session/session-context";
 import {
   birthdayIsPartial,
@@ -45,7 +46,7 @@ export default function WelcomePage() {
   // completed would be a worse greeting than the calendar.
   useEffect(() => {
     if (status === "authenticated" && user?.displayName?.trim()) {
-      router.replace("/today");
+      router.replace(LANDING);
     }
   }, [status, user, router]);
 
@@ -77,7 +78,7 @@ export default function WelcomePage() {
     // checks confirmation, but leaving a stale user in context would make the rest of the app
     // render as though nothing had been saved.
     setUser(result.value);
-    router.replace("/today");
+    router.replace(LANDING);
   }
 
   if (status === "loading") {
@@ -121,7 +122,7 @@ export default function WelcomePage() {
         </button>
 
         <Link
-          href="/today"
+          href={LANDING}
           className="block text-center text-sm text-zinc-500 underline underline-offset-2 dark:text-zinc-400"
         >
           Skip for now

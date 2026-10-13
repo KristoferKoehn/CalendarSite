@@ -1,6 +1,7 @@
 "use client";
 
-import { formatWeekdayNarrow, localClock } from "@/lib/time";
+import { formatClock, formatWeekdayNarrow } from "@/lib/time";
+import { useTimeFormat } from "@/lib/time-format";
 import { CELL_EVENT_LIMIT, type CalendarDay } from "@/lib/calendar";
 
 /** Anything the grid needs to render: a time and a label. */
@@ -90,6 +91,9 @@ function DayCell({
   const live = entries.filter((entry) => !entry.cancelled);
   const shown = live.slice(0, CELL_EVENT_LIMIT);
   const hiddenCount = live.length - shown.length;
+  // Read here rather than passed down: a month cell is a leaf, and threading a display
+  // preference through the grid to reach it would be noise.
+  const timeFormat = useTimeFormat() ?? "24h";
 
   // A quiet tint separates the borrowed days from the month itself, and a slightly
   // stronger one marks the weekend, without either becoming a colour block.
@@ -127,14 +131,14 @@ function DayCell({
           <li
             key={entry.id}
             className="flex items-baseline gap-1 truncate rounded bg-zinc-100/80 px-1 py-0.5 text-[11px] leading-tight dark:bg-zinc-800/70"
-            title={`${localClock(entry.startAtLocal)} ${entry.title}`}
+            title={`${formatClock(entry.startAtLocal, timeFormat)} ${entry.title}`}
           >
             {/* On a phone a month cell is about 46px wide, so a time and a title cannot
                 both fit. The time is dropped there rather than letting it consume the
                 whole chip, which left the title invisible. The title identifies the
                 booking; the exact time is one tap away in the day view. */}
             <span className="hidden tabular-nums text-zinc-500 sm:inline dark:text-zinc-400">
-              {localClock(entry.startAtLocal)}
+              {formatClock(entry.startAtLocal, timeFormat)}
             </span>
             <span className="truncate text-zinc-700 dark:text-zinc-200">{entry.title}</span>
           </li>

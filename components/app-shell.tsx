@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { userLabel } from "@/contract";
 import { UnverifiedEmailNudge } from "@/components/unverified-email-nudge";
+import { LANDING } from "@/lib/landing";
 import { useSession } from "@/lib/session/session-context";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -25,7 +26,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           own line rather than fighting the links for space. */}
       <header className="border-b border-zinc-200 px-4 py-3 sm:px-6">
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          <Link href="/today" className="font-semibold">
+          {/* The wordmark goes to the landing page, which is the kiosk: it is what signing in
+              lands on, so clicking the name should not be the one route that skips it. */}
+          <Link href={LANDING} className="font-semibold">
             CalendarSite
           </Link>
           <Link href="/today" className="hover:underline">

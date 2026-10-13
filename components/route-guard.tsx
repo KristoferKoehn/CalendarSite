@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/session/session-context";
+import { LANDING } from "@/lib/landing";
 import { isVerified } from "@/lib/profile-complete";
 
 export function RouteGuard({
@@ -31,7 +32,7 @@ export function RouteGuard({
     }
 
     if (requireAdmin && user.role !== "admin") {
-      router.replace("/appointments");
+      router.replace(LANDING);
     }
   }, [status, user, requireAdmin, router]);
 

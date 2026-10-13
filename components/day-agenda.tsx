@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Appointment, Resource } from "@/contract";
 import { appointmentOwnerLabel } from "@/contract";
@@ -8,6 +8,8 @@ import { getApiClient, type ApiError } from "@/lib/api";
 import { ErrorBanner } from "@/components/error-banner";
 import { WeekStrip } from "@/components/week-strip";
 import { useNow } from "@/lib/use-now";
+import { useTimeFormat } from "@/lib/time-format";
+import type { TimeFormat } from "@/lib/time-format";
 import { weekDays, canBookEmptyDay, hideFinished } from "@/lib/calendar";
 import { CARD_ACCENT, CARD_SURFACE_CANCELLED, ROW_PADDING } from "@/lib/card";
 import {
@@ -16,7 +18,7 @@ import {
   formatDuration,
   formatLongDate,
   formatRelative,
-  localClock,
+  formatClock,
   seattleDateOf,
   seattleToday,
   type EventPhase,
@@ -98,12 +100,14 @@ function AgendaRow({
   roomName,
   now,
   live,
+  timeFormat,
 }: {
   appointment: Appointment;
   roomName: string;
   now: Date;
   /** False when the row belongs to a day that is not today, so no live phases apply. */
   live: boolean;
+  timeFormat: TimeFormat;
 }) {
   const cancelled = appointment.status === "cancelled";
   const actual = describeSlot(appointment, now);
@@ -130,11 +134,13 @@ function AgendaRow({
 
   return (
     <li className={`flex gap-3 ${ROW_PADDING} sm:gap-4`}>
-      {/* Time gutter: fixed width, so the cards form a clean column. */}
-      <div className={`w-12 shrink-0 pt-0.5 text-right text-sm tabular-nums ${style.time}`}>
-        {localClock(appointment.startAtLocal)}
+      {/* Time gutter: fixed width, so the cards form a clean column. Sized for the longest
+          form either setting produces — "12:59 PM" — so switching to 12-hour time cannot
+          reflow every row. */}
+      <div className={`w-[4.75rem] shrink-0 pt-0.5 text-right text-sm tabular-nums ${style.time}`}>
+        {formatClock(appointment.startAtLocal, timeFormat)}
         <div className="text-xs text-zinc-400 dark:text-zinc-500">
-          {localClock(appointment.endAtLocal)}
+          {formatClock(appointment.endAtLocal, timeFormat)}
         </div>
       </div>
 
@@ -206,6 +212,7 @@ export function AgendaBody({
   onToggleCancelled,
   showEmptyAction = true,
   hideFinished: dropFinished = false,
+  timeFormat = "24h",
 }: {
   now: Date;
   /** Whether the day being shown is the viewer's today, which is what makes live phases
@@ -230,6 +237,8 @@ export function AgendaBody({
   showCancelled: boolean;
   /** Omit to render no toggle, which is what the kiosk does. */
   onToggleCancelled?: () => void;
+  /** How clock times are written. Resolved by the caller so this stays a pure render. */
+  timeFormat?: TimeFormat;
 }) {
   const roomNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -343,6 +352,7 @@ export function AgendaBody({
               roomName={roomNameById.get(appointment.resourceId) ?? "Room"}
               now={now}
               live={isToday}
+              timeFormat={timeFormat}
             />
           ))}
         </ul>
@@ -369,36 +379,71 @@ export function AgendaBody({
  * `date` is passed in rather than assumed, so the same hook serves the main day view
  * (which can be pointed at any date) and the kiosk (which is always today).
  */
-export function useDayAgenda(date: string): {
+/**
+ * How often a displayed day is re-fetched, by audience.
+ *
+ * The kiosk is a shared screen that several people read to decide where to go next, so it is
+ * worth keeping current within the minute. A day view being read by one person is not, and
+ * re-fetching it every fifteen seconds would be a request nobody asked for. Both are the same
+ * request, only at different rates.
+ */
+const REFRESH_MS = {
+  kiosk: 15_000,
+  interactive: 5 * 60_000,
+} as const;
+
+export function useDayAgenda(
+  date: string,
+  options: { refreshMs?: number } = {},
+): {
   appointments: Appointment[];
   resources: Resource[];
   error: ApiError | null;
   loaded: boolean;
+  /** When the last successful refresh landed, for a display that wants to show it. */
+  refreshedAt: Date | null;
 } {
+  const { refreshMs = REFRESH_MS.interactive } = options;
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [error, setError] = useState<ApiError | null>(null);
+  const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
   // Which date's data has arrived. Recording the date rather than a boolean means moving
   // to another date reports "loading" again on its own, with nothing set in the effect
   // body.
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
+  /**
+   * Fetch the day and settle the result, with no notion of cancellation.
+   *
+   * Split out of the effects below so the first load, the interval and the wake-up all run
+   * exactly the same request. The caller owns the cancelled flag, because only the caller
+   * knows whether it is still interested.
+   */
+  const load = useCallback(
+    (isCancelled: () => boolean) =>
+      api.listAppointments({ from: date, to: date }).then((result) => {
+        if (isCancelled()) return;
+        setLoadedFor(date);
+        if (result.ok) {
+          setAppointments(result.value);
+          setError(null);
+          setRefreshedAt(new Date());
+          return;
+        }
+        setError(result.error);
+      }),
+    [date],
+  );
+
   useEffect(() => {
     let cancelled = false;
-    api.listAppointments({ from: date, to: date }).then((result) => {
-      if (cancelled) return;
-      setLoadedFor(date);
-      if (result.ok) {
-        setAppointments(result.value);
-        setError(null);
-      } else {
-        setError(result.error);
-      }
-    });
+    void load(() => cancelled);
     return () => {
       cancelled = true;
     };
-  }, [date]);
+  }, [load]);
 
   useEffect(() => {
     let cancelled = false;
@@ -410,17 +455,40 @@ export function useDayAgenda(date: string): {
     };
   }, []);
 
-  // Refresh on an interval so a display left open for days does not go stale.
+  /**
+   * Keep the day current.
+   *
+   * A background tab is throttled to roughly one timer per second and stops firing entirely on
+   * some platforms, so the interval alone cannot be trusted — a kiosk whose screen was switched
+   * away and back could sit on a stale day for the whole interval. Hence the visibility
+   * listener: polling stops while nobody can see it, and a refresh happens the moment it comes
+   * back, which is exactly when the data is most likely to be old.
+   *
+   * A failed refresh leaves the last good data and the existing error alone. A display that
+   * blanks because one request was lost is worse than one showing a listing that is a minute
+   * out of date, and the next tick will correct it.
+   */
   useEffect(() => {
-    const id = window.setInterval(() => {
-      api.listAppointments({ from: date, to: date }).then((result) => {
-        if (result.ok) setAppointments(result.value);
-      });
-    }, 5 * 60_000);
-    return () => window.clearInterval(id);
-  }, [date]);
+    let cancelled = false;
+    const isCancelled = () => cancelled;
 
-  return { appointments, resources, error, loaded: loadedFor === date };
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load(isCancelled);
+    }, refreshMs);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void load(isCancelled);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [load, refreshMs]);
+
+  return { appointments, resources, error, loaded: loadedFor === date, refreshedAt };
 }
 
 /**
@@ -458,6 +526,7 @@ function Agenda({
   const isPast = selectedDate < today;
   const { appointments, resources, error, loaded } = useDayAgenda(selectedDate);
   const [includeCancelled, setIncludeCancelled] = useState(false);
+  const timeFormat = useTimeFormat();
 
   // The strip can page through weeks independently of which day is selected, so moving
   // a week does not itself change the day being shown.
@@ -521,6 +590,7 @@ function Agenda({
         error={error}
         showCancelled={includeCancelled}
         onToggleCancelled={() => setIncludeCancelled((prev) => !prev)}
+        timeFormat={timeFormat ?? "24h"}
       />
     </div>
   );

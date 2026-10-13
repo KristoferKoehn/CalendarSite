@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { registerInputSchema } from "@/contract";
 import { getApiClient } from "@/lib/api";
+import { LANDING } from "@/lib/landing";
 import { useSession } from "@/lib/session/session-context";
 import { firstZodMessage } from "@/lib/validation";
 
@@ -29,7 +30,7 @@ export default function RegisterPage() {
   // Somebody already signed in has no business here.
   useEffect(() => {
     if (status === "authenticated") {
-      window.location.replace("/today");
+      window.location.replace(LANDING);
     }
   }, [status]);
 

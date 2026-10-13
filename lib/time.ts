@@ -1,3 +1,5 @@
+import type { TimeFormat } from "@/lib/time-format";
+
 const SEATTLE_TIME_ZONE = "America/Los_Angeles";
 
 const wallFormatter = new Intl.DateTimeFormat("en-US", {
@@ -64,6 +66,13 @@ export function seattleWallTimeToLocalIso(
   return `${date}T${time}:00${offset}`;
 }
 
+/**
+ * Abbreviated month names, for the compact ranges in a list.
+ *
+ * Abbreviated on purpose: these appear beside a title in an appointment card, where "October"
+ * would push the title out. Things that want the full name get it from `Intl` — see
+ * `formatLongDate` and `formatFullDate`.
+ */
 const MONTHS = [
   "Jan",
   "Feb",
@@ -80,10 +89,14 @@ const MONTHS = [
 ];
 
 /** Format two Seattle local ISO strings as "Oct 10, 14:00 - 15:00". */
-export function formatSeattleRange(startLocal: string, endLocal: string): string {
+export function formatSeattleRange(
+  startLocal: string,
+  endLocal: string,
+  format: TimeFormat = "24h",
+): string {
   const [, month, day] = startLocal.slice(0, 10).split("-").map(Number);
-  const startTime = startLocal.slice(11, 16);
-  const endTime = endLocal.slice(11, 16);
+  const startTime = formatClock(startLocal, format);
+  const endTime = formatClock(endLocal, format);
   return `${MONTHS[month - 1]} ${day}, ${startTime} - ${endTime}`;
 }
 
@@ -105,6 +118,66 @@ export function seattleToday(now: Date = new Date()): string {
  */
 export function localClock(iso: string): string {
   return iso.slice(11, 16);
+}
+
+/**
+ * The same wall clock as `localClock`, written the way the reader prefers.
+ *
+ * Still read out of the string rather than reformatted through `Date`, for the same reason:
+ * the digits in a Seattle local ISO are already the wall clock the booking was made in, and
+ * putting them through a formatter risks the viewer's own zone shifting them.
+ *
+ * The 12-hour form drops the leading zero, which is how people write times — "9:30 AM", not
+ * "09:30 AM". Midnight and noon are the two cases the hour cannot be reduced to a remainder
+ * of twelve, so they are named.
+ */
+export function formatClock(localIso: string, format: TimeFormat = "24h"): string {
+  const hhmm = localClock(localIso);
+  if (format === "24h") return hhmm;
+
+  const hours = Number(hhmm.slice(0, 2));
+  const minutes = hhmm.slice(3, 5);
+  const suffix = hours < 12 ? "AM" : "PM";
+  const twelve = hours % 12 === 0 ? 12 : hours % 12;
+  return `${twelve}:${minutes} ${suffix}`;
+}
+
+/** A bare `HH:mm` string written the way the reader prefers. */
+export function formatClockParts(hhmm: string, format: TimeFormat = "24h"): string {
+  return formatClock(`0000-00-00T${hhmm}:00`, format);
+}
+
+/**
+ * The current time in Seattle, split so the parts can be styled separately.
+ *
+ * Both formats are derived from the same 24-hour reading rather than from two different
+ * formatter configurations. That matters for midnight: `hour12: false` is documented to render
+ * it as 24 in some locales, and computing the twelve-hour value here from a known-good 24-hour
+ * one removes the question entirely.
+ *
+ * `hour12` tells the caller which separator it is getting, so it knows what a blinking colon
+ * would even look like.
+ */
+export function seattleClockParts(
+  now: Date,
+  format: TimeFormat = "24h",
+): { hours: string; minutes: string; suffix: string | null; hour12: boolean } {
+  const parts = wallFormatter.formatToParts(now);
+  const read = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "00";
+
+  const hours24 = read("hour");
+  const minutes = read("minute");
+
+  if (format === "24h") {
+    return { hours: hours24, minutes, suffix: null, hour12: false };
+  }
+
+  const numeric = Number(hours24);
+  const suffix = numeric < 12 ? "AM" : "PM";
+  // Midnight and noon are the two hours that cannot be reduced to a remainder of twelve.
+  const twelve = numeric % 12 === 0 ? 12 : numeric % 12;
+  return { hours: String(twelve), minutes, suffix, hour12: true };
 }
 
 /** "Thursday, 12 October" for a YYYY-MM-DD date, without time zone conversion. */

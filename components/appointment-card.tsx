@@ -5,7 +5,8 @@ import type { Appointment } from "@/contract";
 import { appointmentOwnerLabel } from "@/contract";
 import { CARD_ACCENT, CARD_SURFACE, CARD_SURFACE_MUTED, ROW_PADDING } from "@/lib/card";
 import { canDeleteAppointment, canModifyAppointment } from "@/lib/permissions";
-import { formatDuration, formatSeattleRange, localClock } from "@/lib/time";
+import { useTimeFormat } from "@/lib/time-format";
+import { formatClock, formatDuration, formatSeattleRange } from "@/lib/time";
 import type { User } from "@/contract";
 
 type Props = {
@@ -46,13 +47,17 @@ export function AppointmentCard({
   const canDelete = canDeleteAppointment(user);
   const cancelled = appointment.status === "cancelled";
   const showActions = Boolean(onCancel || onAskDelete);
+  // Null before hydration; 24-hour is what the prerendered markup already shows.
+  const timeFormat = useTimeFormat() ?? "24h";
 
   return (
     <li className={`flex gap-3 ${ROW_PADDING} sm:gap-4`}>
-      <div className="w-12 shrink-0 pt-0.5 text-right text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
-        {localClock(appointment.startAtLocal)}
+      {/* Fixed width, sized for the longest either setting produces, so switching to 12-hour
+          time cannot reflow every row. */}
+      <div className="w-[4.75rem] shrink-0 pt-0.5 text-right text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
+        {formatClock(appointment.startAtLocal, timeFormat)}
         <div className="text-xs text-zinc-400 dark:text-zinc-500">
-          {localClock(appointment.endAtLocal)}
+          {formatClock(appointment.endAtLocal, timeFormat)}
         </div>
       </div>
 
@@ -109,7 +114,7 @@ export function AppointmentCard({
           </div>
 
           <div className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
-            {formatSeattleRange(appointment.startAtLocal, appointment.endAtLocal)}
+            {formatSeattleRange(appointment.startAtLocal, appointment.endAtLocal, timeFormat)}
           </div>
 
           {cancelled && (
