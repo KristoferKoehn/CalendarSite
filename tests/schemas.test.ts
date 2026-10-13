@@ -3,9 +3,13 @@ import {
   appointmentCreateInputSchema,
   appointmentDeleteOutputSchema,
   appointmentListQuerySchema,
+  appointmentOwnerLabel,
   appointmentSchema,
   errorEnvelopeSchema,
+  formatBirthday,
   loginInputSchema,
+  profileUpdateInputSchema,
+  userLabel,
   userSchema,
 } from "@/contract";
 
@@ -74,16 +78,108 @@ describe("appointmentDeleteOutputSchema", () => {
 });
 
 describe("userSchema", () => {
-  it("accepts a user", () => {
+  const base = {
+    id: "3f2a7c1b-0000-4000-8000-000000000002",
+    email: "user@example.com",
+    role: "user",
+    isAgent: false,
+    createdAt: "2026-10-01T00:00:00Z",
+  };
+
+  it("accepts a user with no profile details", () => {
+    const parsed = userSchema.safeParse(base);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.displayName).toBeNull();
+      expect(parsed.data.birthMonth).toBeNull();
+      expect(parsed.data.bio).toBeNull();
+    }
+  });
+
+  it("accepts a user with profile details", () => {
     expect(
       userSchema.safeParse({
-        id: "3f2a7c1b-0000-4000-8000-000000000002",
-        email: "user@example.com",
-        role: "user",
-        isAgent: false,
-        createdAt: "2026-10-01T00:00:00Z",
+        ...base,
+        displayName: "Jane Doe",
+        birthMonth: 3,
+        birthDay: 14,
+        pronouns: "she/her",
+        jobTitle: "Engineer",
+        bio: "Runs the Thursday sync.",
       }).success,
     ).toBe(true);
+  });
+
+  it("still parses a response from an older build with no profile keys", () => {
+    // Absent keys are normalised rather than rejected.
+    const parsed = userSchema.safeParse({ ...base, displayName: undefined });
+    expect(parsed.success).toBe(true);
+  });
+});
+
+describe("userLabel", () => {
+  it("prefers the display name", () => {
+    expect(userLabel({ displayName: "Jane", email: "jane@example.com" })).toBe("Jane");
+  });
+  it("falls back to the email when there is no name", () => {
+    expect(userLabel({ displayName: null, email: "jane@example.com" })).toBe("jane@example.com");
+  });
+  it("treats a blank name as unset", () => {
+    expect(userLabel({ displayName: "   ", email: "jane@example.com" })).toBe("jane@example.com");
+  });
+});
+
+describe("formatBirthday", () => {
+  it("renders month and day", () => {
+    expect(formatBirthday(3, 14)).toBe("March 14");
+  });
+  it("returns null when unset", () => {
+    expect(formatBirthday(null, null)).toBeNull();
+  });
+});
+
+describe("profileUpdateInputSchema", () => {
+  it("accepts a partial update", () => {
+    expect(profileUpdateInputSchema.safeParse({ displayName: "Jane" }).success).toBe(true);
+  });
+
+  it("accepts explicit nulls to clear values", () => {
+    expect(
+      profileUpdateInputSchema.safeParse({ displayName: null, bio: null }).success,
+    ).toBe(true);
+  });
+
+  it("accepts a paired birthday", () => {
+    expect(
+      profileUpdateInputSchema.safeParse({ birthMonth: 3, birthDay: 14 }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a birth month without a day", () => {
+    expect(profileUpdateInputSchema.safeParse({ birthMonth: 3 }).success).toBe(false);
+  });
+
+  it("rejects an out-of-range birth month", () => {
+    expect(
+      profileUpdateInputSchema.safeParse({ birthMonth: 13, birthDay: 1 }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an over-long bio", () => {
+    expect(profileUpdateInputSchema.safeParse({ bio: "x".repeat(501) }).success).toBe(false);
+  });
+});
+
+describe("appointmentOwnerLabel", () => {
+  it("prefers the name captured at booking", () => {
+    expect(
+      appointmentOwnerLabel({ ownerName: "Jane", ownerEmail: "jane@example.com" }),
+    ).toBe("Jane");
+  });
+  it("falls back to the email label", () => {
+    expect(
+      appointmentOwnerLabel({ ownerName: null, ownerEmail: "jane@example.com" }),
+    ).toBe("jane@example.com");
   });
 });
 

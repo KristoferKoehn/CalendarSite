@@ -73,13 +73,41 @@ appointments are left in place. `409 CONFLICT` if they are the last admin.
 
 | Method | Path | Access | Request | Response |
 |---|---|---|---|---|
-| GET | `/users` | admin | none | `200` `{ "users": User[] }` |
+| GET | `/users` | user | none | `200` `{ "users": User[] }` |
+| GET | `/users/{id}` | user | none | `200` `User` |
 | PATCH | `/users/{id}` | admin | `{ "role"?: "user" \| "admin", "isAgent"?: boolean }` | `200` `User` |
 | DELETE | `/users/{id}` | admin | none | `200` `User` |
 
-At least one of `role` or `isAgent` is required.
+At least one of `role` or `isAgent` is required on `PATCH`.
+
+**Profiles are a shared directory.** Any authenticated user may list every user and
+read any single profile. Only `role` and `isAgent` changes remain admin-only.
 
 `DELETE` removes the user row and **leaves the user's appointments in place**. It returns `409 CONFLICT` when the target is the caller or is the last remaining admin. It no longer conflicts on "user has appointments" — clear those with `DELETE /appointments/{id}`. A non-admin deleting themselves uses `DELETE /auth/me` instead.
+
+### Own profile
+
+| Method | Path | Access | Request | Response |
+|---|---|---|---|---|
+| PATCH | `/auth/me` | user | profile fields, see below | `200` `User` |
+
+Takes no user id, so editing somebody else's profile is impossible. Fields omitted
+from the body are left alone; sending `null` clears one. It cannot change `email`,
+`role`, or `isAgent`.
+
+```json
+{
+  "displayName": "string | null, max 100",
+  "birthMonth": "integer 1-12 or null",
+  "birthDay": "integer 1-31 or null",
+  "pronouns": "string | null, max 50",
+  "jobTitle": "string | null, max 100",
+  "bio": "string | null, max 500"
+}
+```
+
+`birthMonth` and `birthDay` are supplied **together** or not at all, and clearing
+both is done by sending both as `null`. There is deliberately no birth year.
 
 ### Appointments
 
@@ -102,11 +130,21 @@ appointments belonging to a deleted account are cleared.
 {
   "id": "uuid",
   "email": "string",
+  "displayName": "string | null",
+  "birthMonth": "integer 1-12 | null",
+  "birthDay": "integer 1-31 | null",
+  "pronouns": "string | null",
+  "jobTitle": "string | null",
+  "bio": "string | null",
   "role": "user | admin",
   "isAgent": false,
   "createdAt": "ISO UTC"
 }
 ```
+
+The profile fields are always present and nullable. `displayName` is the human label
+to show; fall back to `email` when it is null. `birthMonth` and `birthDay` are
+always both set or both null.
 
 ### Resource
 
@@ -130,6 +168,7 @@ appointments belonging to a deleted account are cleared.
   "id": "uuid",
   "userId": "uuid",
   "ownerEmail": "string",
+  "ownerName": "string | null",
   "resourceId": "uuid",
   "title": "string",
   "description": "string",
@@ -149,6 +188,11 @@ required and always present. It exists so an appointment stays meaningful after 
 owner's account is deleted, at which point `userId` is a historical reference that
 may match no user — treat `userId` as *possibly dangling* and `ownerEmail` as the
 reliable label.
+
+`ownerName` is the owner's display name **at the time of booking**, or null if they
+had not set one. To render an owner, use `ownerName` and fall back to `ownerEmail`
+when it is null. Both live on the appointment, so the label still resolves for a
+deleted owner; do not look the owner up by `userId`.
 
 ## Deleting users and appointments
 

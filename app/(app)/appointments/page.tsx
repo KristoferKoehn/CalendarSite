@@ -1,13 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type {
-  Appointment,
-  AppointmentListQuery,
-  Resource,
-  User,
-} from "@/contract";
+import { useEffect, useState } from "react";
+import type { Appointment, AppointmentListQuery, Resource } from "@/contract";
+import { appointmentOwnerLabel } from "@/contract";
 import { getApiClient, type ApiError } from "@/lib/api";
 import { useSession } from "@/lib/session/session-context";
 import { ErrorBanner } from "@/components/error-banner";
@@ -16,21 +12,13 @@ import { formatSeattleRange } from "@/lib/time";
 const api = getApiClient();
 
 export default function AppointmentsPage() {
-  const { user, status } = useSession();
-  const isAdmin = user?.role === "admin";
+  const { status } = useSession();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [filters, setFilters] = useState<AppointmentListQuery>({});
-
-  const userEmailById = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const item of users) map.set(item.id, item.email);
-    return map;
-  }, [users]);
 
   async function reload(query: AppointmentListQuery = filters) {
     setLoading(true);
@@ -56,14 +44,12 @@ export default function AppointmentsPage() {
   }, [status, filters]);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    // Resources are readable by any signed-in user, so every user gets the
+    // room filter — not just admins.
     void api.listResources().then((result) => {
       if (result.ok) setResources(result.value);
     });
-    void api.listUsers().then((result) => {
-      if (result.ok) setUsers(result.value);
-    });
-  }, [isAdmin]);
+  }, []);
 
   async function handleCancel(id: string) {
     setError(null);
@@ -103,49 +89,45 @@ export default function AppointmentsPage() {
             className="ml-1 rounded border px-2 py-1"
           />
         </label>
-        {isAdmin && (
-          <>
-            <label className="text-sm">
-              Resource
-              <select
-                value={filters.resourceId ?? ""}
-                onChange={(event) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    resourceId: event.target.value || undefined,
-                  }))
-                }
-                className="ml-1 rounded border px-2 py-1"
-              >
-                <option value="">All</option>
-                {resources.map((resource) => (
-                  <option key={resource.id} value={resource.id}>
-                    {resource.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              Status
-              <select
-                value={filters.status ?? ""}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setFilters((prev) => ({
-                    ...prev,
-                    status:
-                      value === "booked" || value === "cancelled" ? value : undefined,
-                  }));
-                }}
-                className="ml-1 rounded border px-2 py-1"
-              >
-                <option value="">All</option>
-                <option value="booked">Booked</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </label>
-          </>
-        )}
+        <label className="text-sm">
+          Resource
+          <select
+            value={filters.resourceId ?? ""}
+            onChange={(event) =>
+              setFilters((prev) => ({
+                ...prev,
+                resourceId: event.target.value || undefined,
+              }))
+            }
+            className="ml-1 rounded border px-2 py-1"
+          >
+            <option value="">All</option>
+            {resources.map((resource) => (
+              <option key={resource.id} value={resource.id}>
+                {resource.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          Status
+          <select
+            value={filters.status ?? ""}
+            onChange={(event) => {
+              const value = event.target.value;
+              setFilters((prev) => ({
+                ...prev,
+                status:
+                  value === "booked" || value === "cancelled" ? value : undefined,
+              }));
+            }}
+            className="ml-1 rounded border px-2 py-1"
+          >
+            <option value="">All</option>
+            <option value="booked">Booked</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </label>
       </div>
 
       <ErrorBanner error={error} />
@@ -164,11 +146,12 @@ export default function AppointmentsPage() {
                 <div className="text-sm text-zinc-500">
                   {formatSeattleRange(appointment.startAtLocal, appointment.endAtLocal)}
                 </div>
-                {isAdmin && (
-                  <div className="text-sm text-zinc-500">
-                    {userEmailById.get(appointment.userId) ?? appointment.userId}
-                  </div>
-                )}
+                {/* Name captured at booking time, falling back to the email label.
+                    Both live on the appointment, so this still renders for an
+                    owner whose account has been deleted. */}
+                <div className="text-sm text-zinc-500">
+                  {appointmentOwnerLabel(appointment)}
+                </div>
                 <div className="text-sm text-zinc-500">{appointment.status}</div>
               </div>
               {appointment.status === "booked" && (

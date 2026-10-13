@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { userLabel } from "@/contract";
 import { useSession } from "@/lib/session/session-context";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -27,13 +28,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/appointments" className="hover:underline">
             Appointments
           </Link>
+          <Link href="/people" className="hover:underline">
+            People
+          </Link>
           {user?.role === "admin" && (
             <Link href="/users" className="hover:underline">
               Admin
             </Link>
           )}
           <div className="ml-auto flex items-center gap-3">
-            <span className="text-zinc-600">{user?.email}</span>
+            <Link href="/settings" className="text-zinc-600 hover:underline">
+              {user ? userLabel(user) : ""}
+            </Link>
             <button
               onClick={handleLogout}
               className="rounded border px-2 py-1"

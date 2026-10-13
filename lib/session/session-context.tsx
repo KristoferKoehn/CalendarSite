@@ -20,6 +20,10 @@ type SessionValue = {
   login: (input: LoginInput) => Promise<ApiError | null>;
   register: (input: RegisterInput) => Promise<ApiError | null>;
   logout: () => void;
+  /** Re-read the current user, e.g. after editing the profile. */
+  refresh: () => Promise<void>;
+  /** Replace the cached user after a successful self-update. */
+  setUser: (user: User) => void;
 };
 
 const SessionContext = createContext<SessionValue | null>(null);
@@ -79,9 +83,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setStatus("anonymous");
   }, []);
 
+  const refresh = useCallback(async () => {
+    const result = await getApiClient().me();
+    if (result.ok) {
+      setUser(result.value);
+      setStatus("authenticated");
+      return;
+    }
+    getApiClient().logout();
+    setUser(null);
+    setStatus("anonymous");
+  }, []);
+
   const value = useMemo(
-    () => ({ status, user, login, register, logout }),
-    [status, user, login, register, logout],
+    () => ({ status, user, login, register, logout, refresh, setUser }),
+    [status, user, login, register, logout, refresh],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

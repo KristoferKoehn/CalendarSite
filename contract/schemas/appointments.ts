@@ -63,6 +63,15 @@ export const appointmentSchema = z.object({
    * is deleted — `userId` is then a historical reference that may match no user.
    */
   ownerEmail: z.string(),
+  /**
+   * The owner's display name at the time of booking, or null if they had not set
+   * one. Use `appointmentOwnerLabel` to render: it falls back to `ownerEmail`,
+   * which is the durable label that survives the owner's account being deleted.
+   *
+   * Tolerated as absent and normalised to null, so responses from an older build
+   * still parse.
+   */
+  ownerName: z.string().nullish().transform((v) => v ?? null),
   resourceId: uuidSchema,
   title: appointmentTitleSchema,
   description: appointmentDescriptionSchema,
@@ -87,3 +96,15 @@ export const appointmentDeleteOutputSchema = z.object({
   id: uuidSchema,
 });
 export type AppointmentDeleteOutput = z.infer<typeof appointmentDeleteOutputSchema>;
+
+/**
+ * The name to show for an appointment's owner: their display name at booking
+ * time, falling back to the email label captured alongside it. Unlike looking the
+ * owner up by `userId`, this still resolves once the account is deleted.
+ */
+export function appointmentOwnerLabel(appointment: {
+  ownerName: string | null;
+  ownerEmail: string;
+}): string {
+  return appointment.ownerName?.trim() || appointment.ownerEmail;
+}

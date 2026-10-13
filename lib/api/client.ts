@@ -8,6 +8,7 @@ import type {
   DeleteSelfOutput,
   LoginInput,
   LoginOutput,
+  ProfileUpdateInput,
   RegisterInput,
   RegisterOutput,
   Resource,
@@ -23,6 +24,8 @@ export interface ApiClient {
   login(input: LoginInput): Promise<Result<LoginOutput, ApiError>>;
   logout(): void;
   me(): Promise<Result<User, ApiError>>;
+  /** Update the caller's own profile. Omitted fields are left alone. */
+  updateProfile(input: ProfileUpdateInput): Promise<Result<User, ApiError>>;
   /** Delete the caller's own account. Their appointments are left in place. */
   deleteAccount(): Promise<Result<DeleteSelfOutput, ApiError>>;
 
@@ -31,7 +34,10 @@ export interface ApiClient {
   updateResource(id: string, input: UpdateResourceInput): Promise<Result<Resource, ApiError>>;
   deactivateResource(id: string): Promise<Result<Resource, ApiError>>;
 
+  /** The people directory. Readable by every authenticated user. */
   listUsers(): Promise<Result<User[], ApiError>>;
+  /** One user's profile. Readable by every authenticated user. */
+  getUser(id: string): Promise<Result<User, ApiError>>;
   updateUser(id: string, input: UpdateUserInput): Promise<Result<User, ApiError>>;
   deleteUser(id: string): Promise<Result<User, ApiError>>;
 

@@ -52,13 +52,31 @@
 |---|---|---|---|
 | POST | `/auth/register` | public | create user |
 | POST | `/auth/login` | public | return bearer token and `expiresAt` |
-| GET | `/auth/me` | authenticated | return `id`, `email`, `role`, `isAgent` |
+| GET | `/auth/me` | authenticated | return `id`, `email`, `role`, `isAgent` and profile details |
+| PATCH | `/auth/me` | authenticated | update **your own** profile |
 | DELETE | `/auth/me` | authenticated | delete your own account |
+
+`PATCH /auth/me` takes no user id, so editing somebody else's profile is
+structurally impossible. Fields omitted from the body are left alone; sending
+`null` clears one. It cannot change `email`, `role`, or `isAgent`.
 
 `DELETE /auth/me` exists because `DELETE /users/:id` is admin-only: without it a
 non-admin could never delete themselves, and relaxing that role check would let any
 user delete anybody. The account's appointments are left in place. The last
 remaining admin cannot delete themselves.
+
+### Users
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/users` | authenticated | the people directory |
+| GET | `/users/:id` | authenticated | one person's profile |
+| PATCH | `/users/:id` | admin | set `role` or `isAgent` |
+| DELETE | `/users/:id` | admin | delete user |
+
+Profiles are a shared directory: **every authenticated user can read every other
+user's profile**, which is what makes a display name usable on a shared calendar.
+Only role and agent changes remain admin-only.
 
 ### Resources
 
@@ -68,14 +86,6 @@ remaining admin cannot delete themselves.
 | POST | `/resources` | admin | create resource |
 | PATCH | `/resources/:id` | admin | edit resource |
 | DELETE | `/resources/:id` | admin | deactivate resource |
-
-### Users
-
-| Method | Path | Access | Purpose |
-|---|---|---|---|
-| GET | `/users` | admin | list users |
-| PATCH | `/users/:id` | admin | set `role` or `isAgent` |
-| DELETE | `/users/:id` | admin | delete user |
 
 ### Appointments
 

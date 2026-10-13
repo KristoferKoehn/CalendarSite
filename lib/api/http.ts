@@ -18,6 +18,7 @@ import {
   type CreateResourceInput,
   type LoginInput,
   type LoginOutput,
+  type ProfileUpdateInput,
   type RegisterInput,
   type RegisterOutput,
   type Resource,
@@ -79,6 +80,16 @@ export class HttpApiClient implements ApiClient {
     return this.request({
       method: "GET",
       path: "/auth/me",
+      auth: true,
+      schema: userSchema,
+    });
+  }
+
+  async updateProfile(input: ProfileUpdateInput): Promise<Result<User, ApiError>> {
+    return this.request({
+      method: "PATCH",
+      path: "/auth/me",
+      body: input,
       auth: true,
       schema: userSchema,
     });
@@ -146,6 +157,15 @@ export class HttpApiClient implements ApiClient {
       schema: userListOutputSchema,
     });
     return result.ok ? ok(result.value.users) : result;
+  }
+
+  async getUser(id: string): Promise<Result<User, ApiError>> {
+    return this.request({
+      method: "GET",
+      path: `/users/${encodeURIComponent(id)}`,
+      auth: true,
+      schema: userSchema,
+    });
   }
 
   async updateUser(id: string, input: UpdateUserInput): Promise<Result<User, ApiError>> {
