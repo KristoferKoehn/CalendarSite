@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { userLabel } from "@/contract";
+import { UnverifiedEmailNudge } from "@/components/unverified-email-nudge";
 import { useSession } from "@/lib/session/session-context";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -60,6 +61,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </nav>
       </header>
+      {/* Above the page rather than inside it, so an unconfirmed address is visible from
+          wherever the reader happens to be. */}
+      <UnverifiedEmailNudge />
       <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
     </div>
   );

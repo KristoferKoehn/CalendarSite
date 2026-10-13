@@ -12,8 +12,11 @@ import type {
   ProfileUpdateInput,
   RegisterInput,
   RegisterOutput,
+  ResendVerificationInput,
   ResetPasswordInput,
   ResetPasswordOutput,
+  VerifyEmailInput,
+  VerifyEmailOutput,
   Resource,
   UpdateResourceInput,
   UpdateUserInput,
@@ -36,6 +39,16 @@ export interface ApiClient {
    * for the account.
    */
   resetPassword(input: ResetPasswordInput): Promise<Result<ResetPasswordOutput, ApiError>>;
+  /**
+   * Redeem an email verification link. Needs no session: the link is opened from a mail
+   * client, where there is none.
+   */
+  verifyEmail(input: VerifyEmailInput): Promise<Result<VerifyEmailOutput, ApiError>>;
+  /**
+   * Ask for a fresh verification link. Answers the same way whether or not the address
+   * has an account, so callers must not branch on it to infer existence.
+   */
+  resendVerification(input: ResendVerificationInput): Promise<Result<VerifyEmailOutput, ApiError>>;
   me(): Promise<Result<User, ApiError>>;
   /** Update the caller's own profile. Omitted fields are left alone. */
   updateProfile(input: ProfileUpdateInput): Promise<Result<User, ApiError>>;

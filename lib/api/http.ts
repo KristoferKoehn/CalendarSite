@@ -8,6 +8,7 @@ import {
   registerOutputSchema,
   resetPasswordOutputSchema,
   resourceListOutputSchema,
+  verifyEmailOutputSchema,
   resourceSchema,
   userListOutputSchema,
   userSchema,
@@ -23,8 +24,11 @@ import {
   type ProfileUpdateInput,
   type RegisterInput,
   type RegisterOutput,
+  type ResendVerificationInput,
   type ResetPasswordInput,
   type ResetPasswordOutput,
+  type VerifyEmailInput,
+  type VerifyEmailOutput,
   type Resource,
   type UpdateResourceInput,
   type UpdateUserInput,
@@ -113,6 +117,36 @@ export class HttpApiClient implements ApiClient {
 
   logout(): void {
     this.deps.tokenStore.clear();
+  }
+
+  /**
+   * Redeem a verification link. Answers 204 with no body, and needs no session: the link
+   * is opened from a mail client.
+   */
+  async verifyEmail(input: VerifyEmailInput): Promise<Result<VerifyEmailOutput, ApiError>> {
+    return this.request({
+      method: "POST",
+      path: "/auth/verify-email",
+      body: input,
+      schema: verifyEmailOutputSchema,
+      noContent: true,
+    });
+  }
+
+  /**
+   * Ask for a fresh verification link. Answers 204 whether or not the address has an
+   * account, so it cannot be used to discover who has signed up.
+   */
+  async resendVerification(
+    input: ResendVerificationInput,
+  ): Promise<Result<VerifyEmailOutput, ApiError>> {
+    return this.request({
+      method: "POST",
+      path: "/auth/resend-verification",
+      body: input,
+      schema: verifyEmailOutputSchema,
+      noContent: true,
+    });
   }
 
   async me(): Promise<Result<User, ApiError>> {

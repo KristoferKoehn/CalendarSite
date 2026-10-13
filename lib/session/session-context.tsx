@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { LoginInput, RegisterInput, User } from "@/contract";
+import { ErrorCodes, type LoginInput, type RegisterInput, type User } from "@/contract";
 import { getApiClient, type ApiError } from "@/lib/api";
 
 type SessionStatus = "loading" | "authenticated" | "anonymous";
@@ -42,11 +42,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         if (result.ok) {
           setUser(result.value);
           setStatus("authenticated");
-        } else {
-          getApiClient().logout();
-          setUser(null);
-          setStatus("anonymous");
+          return;
         }
+        // Only a rejection by the server means the session is really gone. A network blip
+        // must not throw away a valid token, which would sign people out for being briefly
+        // offline — and would have done so mid-verification, where a failed refresh is
+        // most likely to happen.
+        const rejected =
+          result.error.code === ErrorCodes.UNAUTHENTICATED ||
+          result.error.code === ErrorCodes.FORBIDDEN;
+        if (rejected) getApiClient().logout();
+        setUser(null);
+        setStatus("anonymous");
       });
 
     return () => {

@@ -54,6 +54,8 @@
 | POST | `/auth/login` | public | return bearer token and `expiresAt` |
 | POST | `/auth/forgot-password` | public | `204`, no body. Rate limited, and answered identically whether or not the address has an account |
 | POST | `/auth/reset-password` | public | `204`, no body. Body `{ token, newPassword }`. Ends every existing session for the account |
+| POST | `/auth/verify-email` | public | `200` `User`. Body `{ token }`. No session needed: the link opens from a mail client |
+| POST | `/auth/resend-verification` | public | `204`, no body. Body `{ email }`. `409` when already confirmed |
 | GET | `/auth/me` | authenticated | return `id`, `email`, `role`, `isAgent` and profile details |
 | PATCH | `/auth/me` | authenticated | update **your own** profile |
 | DELETE | `/auth/me` | authenticated | delete your own account |

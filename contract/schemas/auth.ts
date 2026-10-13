@@ -51,3 +51,19 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordInputSchema>;
  */
 export const resetPasswordOutputSchema = z.object({ ok: z.literal(true) });
 export type ResetPasswordOutput = z.infer<typeof resetPasswordOutputSchema>;
+
+/** Redeeming a verification link. No session is needed: the link comes from a mail client. */
+export const verifyEmailInputSchema = z.object({
+  token: z.string().min(1, "This verification link is missing its token."),
+});
+export type VerifyEmailInput = z.infer<typeof verifyEmailInputSchema>;
+
+/** Asking for a fresh verification link. */
+export const resendVerificationInputSchema = z.object({
+  email: emailSchema,
+});
+export type ResendVerificationInput = z.infer<typeof resendVerificationInputSchema>;
+
+/** Redeeming a verification link answers 204 with no body. */
+export const verifyEmailOutputSchema = z.object({ ok: z.literal(true) });
+export type VerifyEmailOutput = z.infer<typeof verifyEmailOutputSchema>;

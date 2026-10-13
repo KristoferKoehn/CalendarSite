@@ -52,6 +52,8 @@ Authorization values: `public`, `user`, `admin`, or `owner or admin`.
 | POST | `/auth/login` | public | `{ "email": string, "password": string }` | `200` `{ "token": string, "expiresAt": string }` |
 | POST | `/auth/forgot-password` | public | `{ "email": string }` | `204`, no body |
 | POST | `/auth/reset-password` | public | `{ "token": string, "newPassword": string }` | `204`, no body |
+| POST | `/auth/verify-email` | public | `{ "token": string }` | `200` `User` |
+| POST | `/auth/resend-verification` | public | `{ "email": string }` | `204`, no body |
 | GET | `/auth/me` | user | none | `200` `User` |
 | DELETE | `/auth/me` | user | none | `200` `User` (the deleted user) |
 
