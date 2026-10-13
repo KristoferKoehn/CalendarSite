@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DayAgenda } from "@/components/day-agenda";
 import { MonthBody } from "@/components/schedule-month";
 import { useNow } from "@/lib/use-now";
+import { normaliseAnchor } from "@/lib/calendar";
 import { seattleToday } from "@/lib/time";
 
 /**
@@ -77,8 +78,10 @@ export function MonthView() {
   if (!now) return <p className="text-sm text-zinc-500">Loading…</p>;
 
   const today = seattleToday(now);
-  // The month is addressed, so it survives a refresh and can be linked to: ?m=2026-11
-  const anchor = searchParams.get("m") ?? today;
+  // Normalised once, at the source. A bare month is what a shared link looks like, and
+  // the formatters below build a Date from it: formatMonthYear("2026-11") would read the
+  // missing day as NaN and throw "Invalid time value", taking the whole route down.
+  const anchor = normaliseAnchor(searchParams.get("m"), today);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">

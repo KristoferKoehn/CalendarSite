@@ -79,6 +79,17 @@ describe("normaliseAnchor", () => {
     expect(normaliseAnchor("2026-11-01", "2026-10-12")).toBe("2026-11-01");
   });
 
+  it("returns something the month formatter can actually print", () => {
+    // The regression: formatMonthYear builds a Date from its argument, and
+    // formatMonthYear("2026-11") throws "Invalid time value" because the missing day
+    // reads as NaN. A bare month reaching a formatter took the whole route down, so
+    // normalising has to happen before the value is displayed, not just before it is
+    // used as a range.
+    expect(() => formatMonthYear("2026-11")).toThrow();
+    expect(() => formatMonthYear(normaliseAnchor("2026-11", "2026-10-12"))).not.toThrow();
+    expect(formatMonthYear(normaliseAnchor("2026-11", "2026-10-12"))).toBe("November 2026");
+  });
+
   it("keeps a full, valid date", () => {
     expect(normaliseAnchor("2026-11-15", "2026-10-12")).toBe("2026-11-15");
   });
