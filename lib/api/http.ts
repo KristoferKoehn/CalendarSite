@@ -57,12 +57,42 @@ type RequestOptions<T> = {
   noContent?: boolean;
 };
 
+/**
+ * How long a request may take before it is abandoned.
+ *
+ * A network that silently drops packets leaves a request hanging rather than failing, so without
+ * a deadline the app sits on a spinner indefinitely. Fifteen seconds is well beyond a slow
+ * connection and well short of a person giving up.
+ */
+const DEFAULT_TIMEOUT_MS = 15_000;
+
+/**
+ * A short, readable reason a request never completed.
+ *
+ * `fetch` rejects with a `TypeError` whose `cause` carries the real story — the browser codes come
+ * from there. The fallbacks matter because the shape differs: some browsers set `code`, some only
+ * a message, and a timeout arrives as an AbortSignal error with no cause at all.
+ */
+function describeNetworkFailure(cause: unknown): string {
+  if (!(cause instanceof Error)) return "unknown";
+  if (cause.name === "TimeoutError") return "no response";
+  const inner = (cause as { cause?: unknown }).cause;
+  if (inner && typeof inner === "object") {
+    const { code, message } = inner as { code?: unknown; message?: unknown };
+    if (typeof code === "string" && code) return code;
+    if (typeof message === "string" && message) return message;
+  }
+  return cause.message || cause.name || "unknown";
+}
+
 export class HttpApiClient implements ApiClient {
   constructor(
     private readonly deps: {
       baseUrl: string;
       tokenStore: TokenStore;
       fetchFn?: typeof fetch;
+      /** Overridable so a test does not have to wait fifteen seconds to exercise a timeout. */
+      timeoutMs?: number;
     },
   ) {}
 
@@ -373,9 +403,29 @@ export class HttpApiClient implements ApiClient {
         method: options.method,
         headers,
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        // A network that silently drops packets leaves a request hanging rather than failing, so
+        // without this the app would sit on a spinner forever. Fifteen seconds is well beyond a
+        // slow connection and well short of a person giving up.
+        signal: AbortSignal.timeout(this.deps.timeoutMs ?? DEFAULT_TIMEOUT_MS),
       });
-    } catch {
-      return err(new ApiError(ErrorCodes.INTERNAL, "Network error", { status: 0 }));
+    } catch (cause) {
+      // The message names the cause rather than saying "Network error". A browser reports
+      // ERR_CONNECTION_REFUSED, ERR_TIMED_OUT or ERR_CERT_AUTHORITY_INVALID in the error's cause,
+      // and that difference is the whole diagnosis: refused means something answered and said no,
+      // timed out means nothing answered at all. Reporting one string for all of them makes a
+      // blocked port indistinguishable from a wrong certificate.
+      const timedOut = cause instanceof Error && cause.name === "TimeoutError";
+      const code = describeNetworkFailure(cause);
+      const seconds = (this.deps.timeoutMs ?? DEFAULT_TIMEOUT_MS) / 1000;
+      return err(
+        new ApiError(
+          ErrorCodes.INTERNAL,
+          timedOut
+            ? `The server did not answer within ${seconds}s (${code})`
+            : `Could not reach the server (${code})`,
+          { status: 0 },
+        ),
+      );
     }
 
     if (!response.ok) {
