@@ -103,6 +103,24 @@ export function normaliseDate(value: string | null | undefined, today: string): 
     : today;
 }
 
+/**
+ * Whether an empty day should still invite you to book it.
+ *
+ * A day that has already gone cannot be booked, so the invitation is a dead end there:
+ * the empty state is the whole message. Today and future days keep it, since an empty
+ * afternoon is exactly when you would want to fill it.
+ */
+export function canBookEmptyDay({
+  isPast,
+  actionEnabled = true,
+}: {
+  isPast: boolean;
+  /** Some views are displays rather than consoles and never show the action. */
+  actionEnabled?: boolean;
+}): boolean {
+  return actionEnabled && !isPast;
+}
+
 /** The seven days of the week containing `date`. */export function weekDays(date: string, today: string): CalendarDay[] {
   const start = startOfWeek(date);
   const days: CalendarDay[] = [];

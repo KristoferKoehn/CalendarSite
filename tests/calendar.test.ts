@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildMonthGrid,
+  canBookEmptyDay,
   cellContents,
   gridRange,
   groupByDate,
@@ -134,6 +135,23 @@ describe("normaliseDate", () => {
     expect(normaliseDate("2026-13-01", today)).toBe(today);
     expect(normaliseDate("2026-11-31", today)).toBe(today);
     expect(normaliseDate("2027-02-29", today)).toBe(today);
+  });
+});
+
+describe("canBookEmptyDay", () => {
+  it("hides the invitation on a day that has already gone", () => {
+    // Booking the past is a dead end, so the empty state is the whole message.
+    expect(canBookEmptyDay({ isPast: true })).toBe(false);
+  });
+
+  it("keeps it for today, which is when an empty afternoon is worth filling", () => {
+    expect(canBookEmptyDay({ isPast: false })).toBe(true);
+  });
+
+  it("never shows it where the action is disabled", () => {
+    // The kiosk is a display, not a console.
+    expect(canBookEmptyDay({ isPast: false, actionEnabled: false })).toBe(false);
+    expect(canBookEmptyDay({ isPast: true, actionEnabled: false })).toBe(false);
   });
 });
 

@@ -8,7 +8,7 @@ import { getApiClient, type ApiError } from "@/lib/api";
 import { ErrorBanner } from "@/components/error-banner";
 import { WeekStrip } from "@/components/week-strip";
 import { useNow } from "@/lib/use-now";
-import { weekDays } from "@/lib/calendar";
+import { weekDays, canBookEmptyDay } from "@/lib/calendar";
 import {
   addDays,
   describeSlot,
@@ -197,6 +197,7 @@ function AgendaRow({
 export function AgendaBody({
   now,
   isToday,
+  isPast,
   appointments,
   resources,
   error,
@@ -208,6 +209,8 @@ export function AgendaBody({
   /** Whether the day being shown is the viewer's today, which is what makes live phases
    *  and the "happening now" summary meaningful. */
   isToday: boolean;
+  /** Whether the day has already finished. */
+  isPast: boolean;
   appointments: Appointment[];
   resources: Resource[];
   error: ApiError | null;
@@ -296,7 +299,10 @@ export function AgendaBody({
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             {isToday ? "Nothing booked for today." : "Nothing booked for this day."}
           </p>
-          {showEmptyAction && (
+          {/* No invitation to book a day that has already gone: it is a dead end, and the
+              empty state is the whole message. Today and future days keep it, and the
+              kiosk never shows it because nobody books from a wall display. */}
+          {canBookEmptyDay({ isPast, actionEnabled: showEmptyAction }) && (
             <Link
               href="/appointments/new"
               className="mt-3 inline-block rounded bg-zinc-900 px-3 py-1 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900"
@@ -425,6 +431,8 @@ function Agenda({
   const today = seattleToday(now);
   // "Happening now" is only meaningful when the day being shown is the viewer's today.
   const isToday = selectedDate === today;
+  // Calendar dates are YYYY-MM-DD, so a plain string comparison is a date comparison.
+  const isPast = selectedDate < today;
   const { appointments, resources, error, loaded } = useDayAgenda(selectedDate);
   const [includeCancelled, setIncludeCancelled] = useState(false);
 
@@ -484,6 +492,7 @@ function Agenda({
       <AgendaBody
         now={now}
         isToday={isToday}
+        isPast={isPast}
         appointments={appointments}
         resources={resources}
         error={error}

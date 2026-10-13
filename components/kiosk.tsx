@@ -48,9 +48,10 @@ function KioskView({ now }: { now: Date }) {
       ) : (
         <AgendaBody
           now={now}
-          // The kiosk is always today, so every phase is live and the summary reads as
-          // "happening now" rather than a bare count.
+          // The kiosk is always today, so every phase is live, the summary reads as
+          // "happening now" rather than a bare count, and the day is never past.
           isToday
+          isPast={false}
           appointments={appointments}
           resources={resources}
           error={error}
