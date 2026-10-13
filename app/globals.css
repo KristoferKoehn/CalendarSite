@@ -72,11 +72,12 @@ body {
 }
 
 /*
- * Nothing moves for anyone who asked for that. The indicator is decoration — the time is
- * readable without it — so honouring the preference costs the screen nothing but its pulse.
+ * The pulse is motion — it changes scale — so it goes when the preference says so. The blink
+ * stays: it is an opacity change in place, which is not the kind of movement the preference
+ * exists to suppress, and on a kiosk it is the thing that says the display is alive. Losing it
+ * would leave a wall display that looks frozen, which is worse than a gentle flicker.
  */
 @media (prefers-reduced-motion: reduce) {
-  .kiosk-blink,
   .kiosk-pulse {
     animation: none;
   }
