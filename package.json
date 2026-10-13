@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "contract:generate": "tsx scripts/generate-contract.ts"
+    "contract:generate": "tsx scripts/generate-contract.ts",
+    "mcp:generate": "node scripts/generate-mcp-docs.mjs"
   },
   "dependencies": {
     "next": "16.4.0",

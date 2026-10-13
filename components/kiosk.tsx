@@ -96,7 +96,7 @@ function KioskClock({ now }: { now: Date }) {
           aria-hidden="true"
           data-testid="clock-separator"
         >
-          {clock.hour12 ? " " : ":"}
+          {clock.hour12 ? ":" : ":"}
         </span>
         <span className="tabular-nums">{clock.minutes}</span>
         {clock.suffix && (

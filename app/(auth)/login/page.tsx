@@ -1,87 +1,43 @@
-"use client";
+import { LoginForm } from "@/components/login-form";
+import { McpDiscovery } from "@/components/mcp-discovery";
+import { mcpDiscoveryUrl } from "@/lib/mcp-discovery";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
-import { loginInputSchema } from "@/contract";
-import { LANDING } from "@/lib/landing";
-import { useSession } from "@/lib/session/session-context";
-import { firstZodMessage } from "@/lib/validation";
+/**
+ * The sign-in page.
+ *
+ * A server component wrapping a client form, because the agent-facing discovery block has to be
+ * in the HTML that is served rather than added after hydration. Splitting it this way keeps the
+ * form client-side — it holds state — while the block that exists for machines is rendered on
+ * the server, where a scraper will see it.
+ */
+/**
+ * Escapes text for an HTML comment.
+ *
+ * The value is the deployment's own API URL, so this is defence rather than necessity: a
+ * configuration value containing `-->` or a tag would otherwise break out of the comment. It
+ * costs one line to not depend on that.
+ */
+function forComment(value: string): string {
+  return value.replace(/[<>-]/g, "");
+}
 
 export default function LoginPage() {
-  const { status, login } = useSession();
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  useEffect(() => {
-    if (status === "authenticated") router.replace(LANDING);
-  }, [status, router]);
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-
-    const parsed = loginInputSchema.safeParse({ email, password });
-    if (!parsed.success) {
-      setError(firstZodMessage(parsed.error));
-      return;
-    }
-
-    setPending(true);
-    const result = await login(parsed.data);
-    setPending(false);
-    if (result) {
-      setError(result.message);
-      return;
-    }
-    router.replace(LANDING);
-  }
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Sign in</h1>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className="block text-sm font-medium">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded border px-2 py-1"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded border px-2 py-1"
-          />
-        </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50"
-        >
-          {pending ? "Signing in..." : "Sign in"}
-        </button>
-      </form>
-      <p className="text-sm text-zinc-600">
-        No account?{" "}
-        <Link href="/register" className="underline">
-          Create one
-        </Link>
-      </p>
-      <p className="text-sm text-zinc-600">
-        <Link href="/forgot-password" className="underline">
-          Forgot your password?
-        </Link>
-      </p>
-    </div>
+    <>
+      {/* An HTML comment, emitted as a real comment node rather than a JSX comment — the latter
+          is stripped at build time and would not reach page source. This is the cheapest form of
+          discovery there is: a reader who views source finds where to look next, without having
+          to parse anything. */}
+      <div
+        hidden
+        dangerouslySetInnerHTML={{
+          __html: `<!-- Agent-readable API and MCP description: ${forComment(mcpDiscoveryUrl(apiBaseUrl))} -->`,
+        }}
+      />
+      <McpDiscovery apiBaseUrl={apiBaseUrl} />
+      <LoginForm />
+    </>
   );
 }
