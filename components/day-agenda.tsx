@@ -459,6 +459,14 @@ function Agenda({
 
   return (
     <div className="space-y-5">
+      {/* Which day this is, stated plainly. Selecting another day moves the strip and the
+          list, but without a heading nothing on the page says which date you are looking
+          at — so the selection looks like it did nothing even when it worked. */}
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        {formatLongDate(selectedDate)}
+        {isToday && <span className="ml-2 text-zinc-400 dark:text-zinc-500">Today</span>}
+      </p>
+
       <WeekStrip
         days={strip.map((d) => ({ ...d, hasEntries: daysWithEntries.has(d.date) }))}
         selected={selectedDate}
