@@ -5,7 +5,7 @@ import { MonthGrid, type CalendarEntry } from "@/components/month-grid";
 import { ErrorBanner } from "@/components/error-banner";
 import { getApiClient, type ApiError } from "@/lib/api";
 import { useNow } from "@/lib/use-now";
-import { buildMonthGrid, gridRange, groupByDate } from "@/lib/calendar";
+import { buildMonthGrid, gridRange, groupByDate, normaliseAnchor } from "@/lib/calendar";
 import { addMonths, formatMonthYear, seattleToday } from "@/lib/time";
 import type { Appointment } from "@/contract";
 
@@ -77,38 +77,31 @@ export function MonthBody({
   anchor,
   onAnchorChange,
   today,
-  onLoadingChange,
   header = true,
 }: {
   anchor: string;
   onAnchorChange: (next: string) => void;
   today: string;
-  onLoadingChange?: (loading: boolean) => void;
   /** The parent may render its own header instead. */
   header?: boolean;
 }) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [error, setError] = useState<ApiError | null>(null);
-  // Which range the current data belongs to, rather than a loading flag: paging changes
-  // the range, so "loaded" falls out of the comparison and nothing is set synchronously
-  // inside the effect.
-  const [loadedRange, setLoadedRange] = useState<string | null>(null);
 
-  const days = useMemo(() => buildMonthGrid(anchor, today), [anchor, today]);
+  // Normalised here rather than trusted from the URL: a bare month is what a shared link
+  // looks like, and passing one straight through would produce NaN dates and crash the
+  // render rather than simply showing the wrong month.
+  const days = useMemo(
+    () => buildMonthGrid(normaliseAnchor(anchor, today), today),
+    [anchor, today],
+  );
   const { from, toExclusive } = useMemo(() => gridRange(days), [days]);
-  const rangeKey = `${from}..${toExclusive}`;
-  const loading = loadedRange !== rangeKey;
-
-  useEffect(() => {
-    onLoadingChange?.(loading);
-  }, [loading, onLoadingChange]);
 
   useEffect(() => {
     let cancelled = false;
     // The API's `to` is exclusive, so the range runs one day past the last visible cell.
     api.listAppointments({ from, to: toExclusive }).then((result) => {
       if (cancelled) return;
-      setLoadedRange(rangeKey);
       if (result.ok) {
         setAppointments(result.value);
         setError(null);
@@ -119,7 +112,7 @@ export function MonthBody({
     return () => {
       cancelled = true;
     };
-  }, [from, toExclusive, rangeKey]);
+  }, [from, toExclusive]);
 
   const entriesByDate = useMemo(() => {
     const entries: CalendarEntry[] = appointments.map((a) => ({

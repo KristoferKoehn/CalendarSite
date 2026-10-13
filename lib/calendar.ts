@@ -53,8 +53,41 @@ export function gridRange(days: CalendarDay[]): { from: string; toExclusive: str
   };
 }
 
-/** The seven days of the week containing `date`. */
-export function weekDays(date: string, today: string): CalendarDay[] {
+/**
+ * Turn anything the calendar is anchored on into a real calendar date.
+ *
+ * Bare months are accepted because they are what a person writes in a URL: `?m=2026-11`
+ * is a natural way to link to a month. Passing one straight through would be a crash
+ * rather than a cosmetic problem, because the month-end lookup reads characters 8-10 of
+ * the string and would take `Number("")` as NaN.
+ *
+ * Anything unparseable falls back to `today`, so a mistyped link shows the current month
+ * instead of an error page.
+ */
+export function normaliseAnchor(value: string | null | undefined, today: string): string {
+  if (!value) return today;
+
+  const match = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(value);
+  if (!match) return today;
+
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return today;
+
+  // A bare month is anchored on the first, which is a real date the grid can use.
+  if (match[3] === undefined) return `${match[1]}-${match[2]}-01`;
+
+  const day = Number(match[3]);
+  if (day < 1) return today;
+
+  // Reject a day the month does not have. The last day is derived rather than tabled, so
+  // February in a leap year needs no special case.
+  const lastDay = Number(endOfMonth(`${match[1]}-${match[2]}-01`).slice(8, 10));
+  if (day > lastDay) return today;
+
+  return value;
+}
+
+/** The seven days of the week containing `date`. */export function weekDays(date: string, today: string): CalendarDay[] {
   const start = startOfWeek(date);
   const days: CalendarDay[] = [];
   for (let i = 0; i < 7; i++) {

@@ -4,6 +4,7 @@ import {
   cellContents,
   gridRange,
   groupByDate,
+  normaliseAnchor,
   weekDays,
 } from "@/lib/calendar";
 import {
@@ -67,6 +68,35 @@ describe("calendar date arithmetic", () => {
     // Late-evening Seattle on the 12th is the 13th in UTC; the label must be the 12th.
     expect(seattleDateOf("2026-10-12T23:30:00-07:00")).toBe("2026-10-12");
     expect(seattleDateOf("2026-10-12T00:00:00-07:00")).toBe("2026-10-12");
+  });
+});
+
+describe("normaliseAnchor", () => {
+  it("expands a bare month, which is what a shared link looks like", () => {
+    // The grid needs a real date: its month-end lookup reads characters 8-10 of the
+    // string, so a bare month there produces NaN and takes the render down with it.
+    expect(normaliseAnchor("2026-11", "2026-10-12")).toBe("2026-11-01");
+    expect(normaliseAnchor("2026-11-01", "2026-10-12")).toBe("2026-11-01");
+  });
+
+  it("keeps a full, valid date", () => {
+    expect(normaliseAnchor("2026-11-15", "2026-10-12")).toBe("2026-11-15");
+  });
+
+  it("falls back to today for anything unusable", () => {
+    const today = "2026-10-12";
+    expect(normaliseAnchor(null, today)).toBe(today);
+    expect(normaliseAnchor("", today)).toBe(today);
+    expect(normaliseAnchor("nonsense", today)).toBe(today);
+    expect(normaliseAnchor("2026-13", today)).toBe(today);
+    expect(normaliseAnchor("2026-00", today)).toBe(today);
+    expect(normaliseAnchor("2026-11-31", today)).toBe(today); // November has 30 days
+    expect(normaliseAnchor("2026-11-00", today)).toBe(today);
+  });
+
+  it("accepts a leap day only in a leap year", () => {
+    expect(normaliseAnchor("2028-02-29", "2028-01-01")).toBe("2028-02-29");
+    expect(normaliseAnchor("2027-02-29", "2027-01-01")).toBe("2027-01-01");
   });
 });
 
