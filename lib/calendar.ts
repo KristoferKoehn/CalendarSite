@@ -87,6 +87,22 @@ export function normaliseAnchor(value: string | null | undefined, today: string)
   return value;
 }
 
+/**
+ * The date a day view should show, from a URL value.
+ *
+ * Deliberately full dates only. A bare month is a month anchor, not a day, so it is not
+ * accepted here — `normaliseDate("2026-11", today)` is today, not the first of November.
+ * Anything unusable falls back to `today`, so a hand-edited link shows today rather than
+ * an error.
+ */
+export function normaliseDate(value: string | null | undefined, today: string): string {
+  if (!value) return today;
+  // A date is only usable if it is the same value once validated as an anchor.
+  return normaliseAnchor(value, today) === value && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? value
+    : today;
+}
+
 /** The seven days of the week containing `date`. */export function weekDays(date: string, today: string): CalendarDay[] {
   const start = startOfWeek(date);
   const days: CalendarDay[] = [];

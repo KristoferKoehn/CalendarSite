@@ -5,6 +5,7 @@ import {
   gridRange,
   groupByDate,
   normaliseAnchor,
+  normaliseDate,
   weekDays,
 } from "@/lib/calendar";
 import {
@@ -108,6 +109,31 @@ describe("normaliseAnchor", () => {
   it("accepts a leap day only in a leap year", () => {
     expect(normaliseAnchor("2028-02-29", "2028-01-01")).toBe("2028-02-29");
     expect(normaliseAnchor("2027-02-29", "2027-01-01")).toBe("2027-01-01");
+  });
+});
+
+describe("normaliseDate", () => {
+  const today = "2026-10-12";
+
+  it("keeps a real date", () => {
+    expect(normaliseDate("2026-10-20", today)).toBe("2026-10-20");
+    expect(normaliseDate("2026-01-01", today)).toBe("2026-01-01");
+    expect(normaliseDate("2028-02-29", today)).toBe("2028-02-29");
+  });
+
+  it("refuses a bare month, which is a month anchor rather than a day", () => {
+    // Distinguishing the two matters: accepting it would silently turn ?d=2026-11 into
+    // the first of November.
+    expect(normaliseDate("2026-11", today)).toBe(today);
+  });
+
+  it("falls back to today for anything unusable", () => {
+    expect(normaliseDate(null, today)).toBe(today);
+    expect(normaliseDate("", today)).toBe(today);
+    expect(normaliseDate("nonsense", today)).toBe(today);
+    expect(normaliseDate("2026-13-01", today)).toBe(today);
+    expect(normaliseDate("2026-11-31", today)).toBe(today);
+    expect(normaliseDate("2027-02-29", today)).toBe(today);
   });
 });
 

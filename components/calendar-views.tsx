@@ -6,13 +6,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DayAgenda } from "@/components/day-agenda";
 import { MonthBody } from "@/components/schedule-month";
 import { useNow } from "@/lib/use-now";
-import { normaliseAnchor } from "@/lib/calendar";
+import { normaliseAnchor, normaliseDate } from "@/lib/calendar";
 import { seattleToday } from "@/lib/time";
 
 /**
  * Day and Month are the same tab, so switching between them is a navigation rather than
- * local state. That makes the month a real, shareable address and keeps the browser's
- * back button behaving the way a reader expects.
+ * local state. That makes a view a real, shareable address and keeps the browser's back
+ * button behaving the way a reader expects.
  */
 const VIEWS = [
   { key: "day", label: "Day", href: "/today" },
@@ -46,8 +46,32 @@ function ViewTabs({ active }: { active: string }) {
   );
 }
 
-/** The day view: the week strip, the live summary, and today's bookings. */
+/**
+ * The day view.
+ *
+ * The selected day comes from `?d=` so the week strip, the month grid and a shared link
+ * all agree on what is being shown. `normaliseDate` guards the value: a hand-edited or
+ * stale link falls back to today rather than showing an empty page for a date that never
+ * existed.
+ */
 export function DayView() {
+  const now = useNow();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const today = now ? seattleToday(now) : "";
+  const selected = today ? normaliseDate(searchParams.get("d"), today) : "";
+
+  const selectDate = (date: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    // Today needs no parameter: it is the default.
+    if (date === today) params.delete("d");
+    else params.set("d", date);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
+
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -59,8 +83,17 @@ export function DayView() {
           All appointments →
         </Link>
       </div>
-      <DayAgenda />
+      {now && selected && <DayAgenda selectedDate={selected} onSelectDate={selectDate} />}
     </div>
+  );
+}
+
+/** The day view reads `?d=`, so it needs a Suspense boundary for the same reason. */
+export function DayViewSuspended() {
+  return (
+    <Suspense fallback={<p className="text-sm text-zinc-500">Loading…</p>}>
+      <DayView />
+    </Suspense>
   );
 }
 
@@ -79,7 +112,7 @@ export function MonthView() {
 
   const today = seattleToday(now);
   // Normalised once, at the source. A bare month is what a shared link looks like, and
-  // the formatters below build a Date from it: formatMonthYear("2026-11") would read the
+  // the formatters build a Date from it: formatMonthYear("2026-11") would read the
   // missing day as NaN and throw "Invalid time value", taking the whole route down.
   const anchor = normaliseAnchor(searchParams.get("m"), today);
 
@@ -97,6 +130,9 @@ export function MonthView() {
           const query = params.toString();
           router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
         }}
+        // Clicking a day zooms to it: the month is for finding a day, the day view is for
+        // reading one. This is the whole reason the two live under one tab.
+        onSelectDate={(date) => router.push(`/today?d=${date}`)}
       />
     </div>
   );

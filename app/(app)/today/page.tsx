@@ -1,7 +1,8 @@
 "use client";
 
-import { DayView } from "@/components/calendar-views";
+import { DayViewSuspended } from "@/components/calendar-views";
 
 export default function TodayPage() {
-  return <DayView />;
+  // Suspended because the day view reads ?d= from the query string.
+  return <DayViewSuspended />;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AgendaBody, useTodayAgenda } from "@/components/day-agenda";
+import { AgendaBody, useDayAgenda } from "@/components/day-agenda";
 import { useNow } from "@/lib/use-now";
 import { formatFullDate, seattleClock, seattleToday } from "@/lib/time";
 
@@ -21,7 +21,7 @@ export function Kiosk() {
 
 function KioskView({ now }: { now: Date }) {
   const today = seattleToday(now);
-  const { appointments, resources, error, loaded } = useTodayAgenda(today);
+  const { appointments, resources, error, loaded } = useDayAgenda(today);
   const [includeCancelled, setIncludeCancelled] = useState(false);
 
   // Seattle wall-clock time, from the same zone helpers the agenda uses, so the kiosk
@@ -48,6 +48,9 @@ function KioskView({ now }: { now: Date }) {
       ) : (
         <AgendaBody
           now={now}
+          // The kiosk is always today, so every phase is live and the summary reads as
+          // "happening now" rather than a bare count.
+          isToday
           appointments={appointments}
           resources={resources}
           error={error}

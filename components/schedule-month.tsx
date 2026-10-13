@@ -77,11 +77,14 @@ export function MonthBody({
   anchor,
   onAnchorChange,
   today,
+  onSelectDate,
   header = true,
 }: {
   anchor: string;
   onAnchorChange: (next: string) => void;
   today: string;
+  /** Omitted when the cells should not be actionable. */
+  onSelectDate?: (date: string) => void;
   /** The parent may render its own header instead. */
   header?: boolean;
 }) {
@@ -130,7 +133,12 @@ export function MonthBody({
         <MonthHeader anchor={anchor} onAnchorChange={onAnchorChange} today={today} />
       )}
       <ErrorBanner error={error} />
-      <MonthGrid days={days} byDate={entriesByDate} selected={null} onSelect={() => {}} />
+      <MonthGrid
+        days={days}
+        byDate={entriesByDate}
+        selected={null}
+        onSelect={onSelectDate}
+      />
     </div>
   );
 }

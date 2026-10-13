@@ -95,24 +95,34 @@ function AgendaRow({
   appointment,
   roomName,
   now,
+  live,
 }: {
   appointment: Appointment;
   roomName: string;
   now: Date;
+  /** False when the row belongs to a day that is not today, so no live phases apply. */
+  live: boolean;
 }) {
   const cancelled = appointment.status === "cancelled";
-  const status = describeSlot(appointment, now);
-  const style = PHASE_STYLES[status.phase];
+  const actual = describeSlot(appointment, now);
+  // On a day that is not today the phase is still used for the past/future tint, but
+  // never for a live badge or a countdown.
+  const phase: EventPhase = live
+    ? actual.phase
+    : actual.phase === "past"
+      ? "past"
+      : "upcoming";
+  const style = PHASE_STYLES[phase];
 
   // One "why it matters" line, and only when there is something worth saying. A later
   // booking already shows its start time in the gutter, so repeating it as "starts in
   // 3 hours" would be noise. Restraint here is what keeps a full day scannable.
   let note: string | null = null;
-  if (!cancelled) {
-    if (status.phase === "active") {
-      note = `Free in ${formatDuration(status.minutesUntilEnd)}`;
-    } else if (status.phase === "approaching") {
-      note = `Starting in ${formatDuration(status.minutesUntilStart)}`;
+  if (!cancelled && live) {
+    if (actual.phase === "active") {
+      note = `Free in ${formatDuration(actual.minutesUntilEnd)}`;
+    } else if (actual.phase === "approaching") {
+      note = `Starting in ${formatDuration(actual.minutesUntilStart)}`;
     }
   }
 
@@ -152,7 +162,7 @@ function AgendaRow({
                 Cancelled
               </span>
             ) : (
-              <StatusBadge phase={status.phase} minutesUntilStart={status.minutesUntilStart} />
+              <StatusBadge phase={phase} minutesUntilStart={actual.minutesUntilStart} />
             )}
           </div>
 
@@ -161,7 +171,7 @@ function AgendaRow({
             <span className="text-zinc-300 dark:text-zinc-600">·</span>
             <span className="truncate">{appointmentOwnerLabel(appointment)}</span>
             <span className="text-zinc-300 dark:text-zinc-600">·</span>
-            <span className="tabular-nums">{formatDuration(status.durationMinutes)}</span>
+            <span className="tabular-nums">{formatDuration(actual.durationMinutes)}</span>
           </div>
 
           {appointment.description && (
@@ -185,6 +195,7 @@ function AgendaRow({
  */
 export function AgendaBody({
   now,
+  isToday,
   appointments,
   resources,
   error,
@@ -193,6 +204,9 @@ export function AgendaBody({
   showEmptyAction = true,
 }: {
   now: Date;
+  /** Whether the day being shown is the viewer's today, which is what makes live phases
+   *  and the "happening now" summary meaningful. */
+  isToday: boolean;
   appointments: Appointment[];
   resources: Resource[];
   error: ApiError | null;
@@ -229,43 +243,58 @@ export function AgendaBody({
         cancelled++;
         continue;
       }
-      const phase = describeSlot(a, now).phase;
+      // Live phases only apply to today. On another date the phases would all read as
+      // "upcoming" or "past" anyway, but saying so would be noise.
+      const phase = isToday ? describeSlot(a, now).phase : "upcoming";
       if (phase === "active") active++;
       else if (phase === "approaching") approaching++;
       else if (phase === "upcoming") upcoming++;
     }
     return { active, approaching, upcoming, cancelled };
-  }, [appointments, now]);
+  }, [appointments, now, isToday]);
 
   return (
     <div className="space-y-4">
       <ErrorBanner error={error} />
 
-      {/* Phrased as a sentence rather than a row of tiles, to match the restraint of
-          the rest of the site. */}
+      {/* Phrased as a sentence rather than a row of tiles, to match the restraint of the
+          rest of the site. "Happening now" appears only for today, because it cannot be
+          true of another date. */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-        {summary.active > 0 && (
-          <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            {summary.active === 1 ? "1 happening now" : `${summary.active} happening now`}
+        {isToday ? (
+          <>
+            {summary.active > 0 && (
+              <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                {summary.active === 1 ? "1 happening now" : `${summary.active} happening now`}
+              </span>
+            )}
+            {summary.approaching > 0 && (
+              <span className="inline-flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                {summary.approaching === 1
+                  ? "1 starting soon"
+                  : `${summary.approaching} starting soon`}
+              </span>
+            )}
+            <span className="text-zinc-500 dark:text-zinc-400">
+              {summary.upcoming === 1 ? "1 later today" : `${summary.upcoming} later today`}
+            </span>
+          </>
+        ) : (
+          <span className="text-zinc-500 dark:text-zinc-400">
+            {summary.upcoming + summary.active + summary.approaching === 1
+              ? "1 booking"
+              : `${summary.upcoming + summary.active + summary.approaching} bookings`}
           </span>
         )}
-        {summary.approaching > 0 && (
-          <span className="inline-flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-            {summary.approaching === 1
-              ? "1 starting soon"
-              : `${summary.approaching} starting soon`}
-          </span>
-        )}
-        <span className="text-zinc-500 dark:text-zinc-400">
-          {summary.upcoming === 1 ? "1 later today" : `${summary.upcoming} later today`}
-        </span>
       </div>
 
       {visible.length === 0 ? (
         <div className="rounded-lg border border-dashed border-zinc-300 px-6 py-10 text-center dark:border-zinc-700">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Nothing booked for today.</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            {isToday ? "Nothing booked for today." : "Nothing booked for this day."}
+          </p>
           {showEmptyAction && (
             <Link
               href="/appointments/new"
@@ -283,6 +312,7 @@ export function AgendaBody({
               appointment={appointment}
               roomName={roomNameById.get(appointment.resourceId) ?? "Room"}
               now={now}
+              live={isToday}
             />
           ))}
         </ul>
@@ -304,15 +334,12 @@ export function AgendaBody({
 }
 
 /**
- * Loads today's bookings and the room list.
+ * Loads one day's bookings and the room list.
  *
- * One hook rather than one per view: the day view and the kiosk need exactly the same
- * data, so fetching it in two places would be two chances for them to disagree.
- *
- * `today` comes from the ticking clock rather than being held, so the data follows the
- * Seattle date across midnight instead of showing yesterday's bookings.
+ * `date` is passed in rather than assumed, so the same hook serves the main day view
+ * (which can be pointed at any date) and the kiosk (which is always today).
  */
-export function useTodayAgenda(today: string): {
+export function useDayAgenda(date: string): {
   appointments: Appointment[];
   resources: Resource[];
   error: ApiError | null;
@@ -321,15 +348,16 @@ export function useTodayAgenda(today: string): {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [error, setError] = useState<ApiError | null>(null);
-  // Which day's data has arrived. Recording the day rather than a boolean means moving
-  // to a new day reports "loading" again on its own, with nothing set in the effect body.
+  // Which date's data has arrived. Recording the date rather than a boolean means moving
+  // to another date reports "loading" again on its own, with nothing set in the effect
+  // body.
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    api.listAppointments({ from: today, to: today }).then((result) => {
+    api.listAppointments({ from: date, to: date }).then((result) => {
       if (cancelled) return;
-      setLoadedFor(today);
+      setLoadedFor(date);
       if (result.ok) {
         setAppointments(result.value);
         setError(null);
@@ -340,7 +368,7 @@ export function useTodayAgenda(today: string): {
     return () => {
       cancelled = true;
     };
-  }, [today]);
+  }, [date]);
 
   useEffect(() => {
     let cancelled = false;
@@ -355,36 +383,57 @@ export function useTodayAgenda(today: string): {
   // Refresh on an interval so a display left open for days does not go stale.
   useEffect(() => {
     const id = window.setInterval(() => {
-      api.listAppointments({ from: today, to: today }).then((result) => {
+      api.listAppointments({ from: date, to: date }).then((result) => {
         if (result.ok) setAppointments(result.value);
       });
     }, 5 * 60_000);
     return () => window.clearInterval(id);
-  }, [today]);
+  }, [date]);
 
-  return { appointments, resources, error, loaded: loadedFor === today };
+  return { appointments, resources, error, loaded: loadedFor === date };
 }
 
 /**
  * Gate for the live clock. `useNow` is null until the browser has taken over, so the
  * time-dependent views never contribute anything to the prerendered HTML.
+ *
+ * `selectedDate` is the day to show. The week strip and the month grid both move it, so
+ * a reader can look at any day rather than only today.
  */
-export function DayAgenda() {
+export function DayAgenda({
+  selectedDate,
+  onSelectDate,
+}: {
+  selectedDate: string;
+  onSelectDate: (date: string) => void;
+}) {
   const now = useNow();
   if (!now) return <p className="text-sm text-zinc-500">Loading…</p>;
-  return <Agenda now={now} />;
+  return <Agenda now={now} selectedDate={selectedDate} onSelectDate={onSelectDate} />;
 }
 
-function Agenda({ now }: { now: Date }) {
+function Agenda({
+  now,
+  selectedDate,
+  onSelectDate,
+}: {
+  now: Date;
+  selectedDate: string;
+  onSelectDate: (date: string) => void;
+}) {
   const today = seattleToday(now);
-  const { appointments, resources, error, loaded } = useTodayAgenda(today);
+  // "Happening now" is only meaningful when the day being shown is the viewer's today.
+  const isToday = selectedDate === today;
+  const { appointments, resources, error, loaded } = useDayAgenda(selectedDate);
   const [includeCancelled, setIncludeCancelled] = useState(false);
 
-  // The strip pages independently of the agenda, which always shows today.
-  const [weekAnchor, setWeekAnchor] = useState(today);
+  // The strip can page through weeks independently of which day is selected, so moving
+  // a week does not itself change the day being shown.
+  const [weekAnchor, setWeekAnchor] = useState(selectedDate);
   const strip = useMemo(() => weekDays(weekAnchor, today), [weekAnchor, today]);
 
-  // Which days of the visible week have bookings, for the strip's dots.
+  // Which days of the visible week have bookings, for the strip's dots. The API's `to` is
+  // exclusive, so the range runs one day past the last tile.
   const [weekAppointments, setWeekAppointments] = useState<Appointment[]>([]);
   const weekFrom = strip[0].date;
   const weekToExclusive = addDays(strip[strip.length - 1].date, 1);
@@ -412,19 +461,20 @@ function Agenda({ now }: { now: Date }) {
     <div className="space-y-5">
       <WeekStrip
         days={strip.map((d) => ({ ...d, hasEntries: daysWithEntries.has(d.date) }))}
-        selected={today}
-        onSelect={setWeekAnchor}
+        selected={selectedDate}
+        onSelect={onSelectDate}
         onPrevWeek={() => setWeekAnchor((d) => addDays(d, -7))}
         onNextWeek={() => setWeekAnchor((d) => addDays(d, 7))}
-        onToday={() => setWeekAnchor(today)}
-        isOnToday={weekAnchor === today}
+        onToday={() => {
+          setWeekAnchor(today);
+          onSelectDate(today);
+        }}
+        isOnToday={isToday}
       />
 
-      {/* The list, live summary and cancelled toggle are shared with the kiosk view, so
-          they live in one place rather than being written twice and drifting. The error
-          banner is inside it too, which keeps a failure from being reported twice. */}
       <AgendaBody
         now={now}
+        isToday={isToday}
         appointments={appointments}
         resources={resources}
         error={error}
