@@ -116,7 +116,11 @@ function DayCell({
             className="flex items-baseline gap-1 truncate rounded bg-zinc-100/80 px-1 py-0.5 text-[11px] leading-tight dark:bg-zinc-800/70"
             title={`${localClock(entry.startAtLocal)} ${entry.title}`}
           >
-            <span className="tabular-nums text-zinc-500 dark:text-zinc-400">
+            {/* On a phone a month cell is about 46px wide, so a time and a title cannot
+                both fit. The time is dropped there rather than letting it consume the
+                whole chip, which left the title invisible. The title identifies the
+                booking; the exact time is one tap away in the day view. */}
+            <span className="hidden tabular-nums text-zinc-500 sm:inline dark:text-zinc-400">
               {localClock(entry.startAtLocal)}
             </span>
             <span className="truncate text-zinc-700 dark:text-zinc-200">{entry.title}</span>
