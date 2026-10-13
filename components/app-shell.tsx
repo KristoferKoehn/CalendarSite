@@ -25,6 +25,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/today" className="hover:underline">
             Today
           </Link>
+          <Link href="/schedule" className="hover:underline">
+            Schedule
+          </Link>
           <Link href="/appointments" className="hover:underline">
             Appointments
           </Link>

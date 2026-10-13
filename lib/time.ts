@@ -205,3 +205,102 @@ export function formatRelative(minutes: number): string {
   if (whole > 0) return `in ${formatDuration(whole)}`;
   return `${formatDuration(-whole)} ago`;
 }
+
+/*
+ * Calendar-date arithmetic on YYYY-MM-DD strings.
+ *
+ * These are deliberately pure string maths rather than Date arithmetic. A calendar
+ * date is not an instant: "2026-03-08" is a label for a day in Seattle, and pushing
+ * it through the local Date constructor would interpret it in the *viewer's* zone,
+ * so a user in Auckland could see the grid shift by a day. UTC is used only as a
+ * stable way to count days, never as a time zone claim.
+ */
+
+/** Parse YYYY-MM-DD into a UTC-midnight Date, for arithmetic only. */
+function asUtc(date: string): Date {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+/** Format a UTC-midnight Date back to YYYY-MM-DD. */
+function fromUtc(d: Date): string {
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** Shift a calendar date by whole days. Negative values move backwards. */
+export function addDays(date: string, days: number): string {
+  const d = asUtc(date);
+  d.setUTCDate(d.getUTCDate() + days);
+  return fromUtc(d);
+}
+
+/**
+ * The first day of the week containing `date`. Weeks start on Sunday, matching the
+ * backend's Seattle-day boundaries and the convention of the rest of the UI.
+ */
+export function startOfWeek(date: string): string {
+  return addDays(date, -asUtc(date).getUTCDay());
+}
+
+/** The first day of `date`'s month. */
+export function startOfMonth(date: string): string {
+  return `${date.slice(0, 7)}-01`;
+}
+
+/**
+ * The last day of `date`'s month.
+ *
+ * Derived by stepping to the first of the next month and back one day, rather than
+ * by table lookup, so leap years need no special case.
+ */
+export function endOfMonth(date: string): string {
+  const first = asUtc(startOfMonth(date));
+  first.setUTCMonth(first.getUTCMonth() + 1);
+  return addDays(fromUtc(first), -1);
+}
+
+/** Shift a date by whole months, clamping to the end of the target month. */
+export function addMonths(date: string, months: number): string {
+  const [year, month, day] = date.split("-").map(Number);
+  const target = new Date(Date.UTC(year, month - 1 + months, 1));
+  const lastDay = Number(endOfMonth(fromUtc(target)).slice(8, 10));
+  const clamped = Math.min(day, lastDay);
+  return `${fromUtc(target).slice(0, 7)}-${String(clamped).padStart(2, "0")}`;
+}
+
+/** "October 2026" for a YYYY-MM-DD in that month. */
+export function formatMonthYear(date: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(asUtc(date));
+}
+
+/** "Sun", "Mon", … for a YYYY-MM-DD, without time zone conversion. */
+export function formatWeekdayNarrow(date: string): string {
+  return new Intl.DateTimeFormat("en-US", { weekday: "narrow", timeZone: "UTC" }).format(
+    asUtc(date),
+  );
+}
+
+/** "Thursday 12" — the agenda heading for a single day. */
+export function formatWeekdayAndDay(date: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(asUtc(date));
+}
+
+/**
+ * The Seattle calendar date of an appointment's start, read straight off the
+ * offset-bearing local string. Slicing rather than parsing keeps this independent of
+ * the viewer's time zone, which is the whole reason those strings carry an offset.
+ */
+export function seattleDateOf(localIso: string): string {
+  return localIso.slice(0, 10);
+}
