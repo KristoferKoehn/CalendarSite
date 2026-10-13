@@ -29,6 +29,12 @@ export const userSchema = z.object({
   bio: z.string().nullable(),
   role: roleSchema,
   isAgent: z.boolean(),
+  /**
+   * Null until the address is proven. Every account existing before verification was
+   * added is backfilled by the migration, so null means a genuine unverified signup.
+   * Nothing enforces it yet: verification is planned as a nudge rather than a gate.
+   */
+  emailVerifiedAt: isoTimestampSchema.nullable(),
   createdAt: isoTimestampSchema,
 });
 export type User = z.infer<typeof userSchema>;

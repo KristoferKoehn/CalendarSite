@@ -96,6 +96,7 @@ describe("userSchema", () => {
     bio: null,
     role: "user",
     isAgent: false,
+    emailVerifiedAt: null,
     createdAt: "2026-10-01T00:00:00Z",
   };
 
@@ -106,7 +107,14 @@ describe("userSchema", () => {
       expect(parsed.data.displayName).toBeNull();
       expect(parsed.data.birthMonth).toBeNull();
       expect(parsed.data.bio).toBeNull();
+      expect(parsed.data.emailVerifiedAt).toBeNull();
     }
+  });
+
+  it("accepts a user whose address has been verified", () => {
+    expect(
+      userSchema.safeParse({ ...base, emailVerifiedAt: "2026-10-02T09:30:00Z" }).success,
+    ).toBe(true);
   });
 
   it("accepts a user with profile details", () => {
