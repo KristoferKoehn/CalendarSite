@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { Appointment, AppointmentListQuery, Resource } from "@/contract";
 import { appointmentOwnerLabel } from "@/contract";
 import { getApiClient, type ApiError } from "@/lib/api";
+import { sortResources } from "@/lib/resources";
 import { useSession } from "@/lib/session/session-context";
 import { ErrorBanner } from "@/components/error-banner";
 import { canDeleteAppointment, canModifyAppointment } from "@/lib/permissions";
@@ -47,9 +48,10 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     // Resources are readable by any signed-in user, so every user gets the
-    // room filter — not just admins.
+    // room filter — not just admins. Sorted on arrival so the dropdown reads
+    // alphabetically.
     void api.listResources().then((result) => {
-      if (result.ok) setResources(result.value);
+      if (result.ok) setResources(sortResources(result.value));
     });
   }, []);
 

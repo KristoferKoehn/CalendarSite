@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   appointmentCreateInputSchema,
   appointmentRescheduleInputSchema,
@@ -10,6 +10,7 @@ import {
 } from "@/contract";
 import type { ApiError } from "@/lib/api";
 import { errorMessage } from "@/lib/api/error-message";
+import { sortResources } from "@/lib/resources";
 import { firstZodMessage } from "@/lib/validation";
 
 export type SubmitResult =
@@ -43,6 +44,7 @@ export function AppointmentForm({
   onCancel,
 }: Props) {
   const [resourceId, setResourceId] = useState(initial?.resourceId ?? "");
+  const sortedResources = useMemo(() => sortResources(resources), [resources]);
   const [date, setDate] = useState(initial?.date ?? "");
   const [startTime, setStartTime] = useState(initial?.startTime ?? "");
   const [endTime, setEndTime] = useState(initial?.endTime ?? "");
@@ -108,7 +110,10 @@ export function AppointmentForm({
             <option value="" disabled>
               Select a resource
             </option>
-            {resources.map((resource) => (
+            {/* Sorted here rather than trusting the caller's order, because a dropdown is
+                read as a list and an unordered one is hard to scan for a room by name.
+                Memoised so the sort is not redone on every keystroke in the form. */}
+            {sortedResources.map((resource) => (
               <option key={resource.id} value={resource.id}>
                 {resource.name}
               </option>

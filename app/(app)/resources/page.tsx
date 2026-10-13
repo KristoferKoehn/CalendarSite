@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { CreateResourceInput, Resource } from "@/contract";
 import { getApiClient, type ApiError } from "@/lib/api";
+import { sortResources } from "@/lib/resources";
 import { useSession } from "@/lib/session/session-context";
 import { ErrorBanner } from "@/components/error-banner";
 import { ResourceForm } from "@/components/resource-form";
@@ -25,7 +26,7 @@ export default function ResourcesPage() {
     setError(null);
     const result = await api.listResources();
     setLoading(false);
-    if (result.ok) setResources(result.value);
+    if (result.ok) setResources(sortResources(result.value));
     else setError(result.error);
   }
 
@@ -35,7 +36,9 @@ export default function ResourcesPage() {
     api.listResources().then((result) => {
       if (cancelled) return;
       setLoading(false);
-      if (result.ok) setResources(result.value);
+      // Sorted at the point the data is stored, so the list is alphabetical however it
+      // arrived and stays that way after a create or an edit.
+      if (result.ok) setResources(sortResources(result.value));
       else setError(result.error);
     });
     return () => {
