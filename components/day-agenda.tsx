@@ -101,16 +101,16 @@ function AgendaRow({
   const status = describeSlot(appointment, now);
   const style = PHASE_STYLES[status.phase];
 
-  // One "why it matters" line, chosen per phase, so a card never becomes a wall
-  // of text.
+  // One "why it matters" line, and only when there is something worth saying.
+  // Any later booking already shows its start time in the gutter, so repeating it
+  // as "starts in 3 hours" would be noise. Restraint here is what keeps a full day
+  // scannable.
   let note: string | null = null;
   if (!isCancelled) {
     if (status.phase === "active") {
       note = `Free in ${formatDuration(status.minutesUntilEnd)}`;
     } else if (status.phase === "approaching") {
       note = `Starting in ${formatDuration(status.minutesUntilStart)}`;
-    } else if (status.phase === "upcoming") {
-      note = `Starts ${formatRelative(status.minutesUntilStart)}`;
     }
   }
 
