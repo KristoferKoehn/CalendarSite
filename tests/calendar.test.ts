@@ -5,6 +5,7 @@ import {
   cellContents,
   gridRange,
   groupByDate,
+  hideFinished,
   normaliseAnchor,
   normaliseDate,
   weekDays,
@@ -152,6 +153,51 @@ describe("canBookEmptyDay", () => {
     // The kiosk is a display, not a console.
     expect(canBookEmptyDay({ isPast: false, actionEnabled: false })).toBe(false);
     expect(canBookEmptyDay({ isPast: true, actionEnabled: false })).toBe(false);
+  });
+});
+
+describe("hideFinished", () => {
+  // The boundary is the point: a booking disappears the moment it ends, not at the end of
+  // the hour and not when the next one starts.
+  const slot = (title: string, endAtLocal: string) => ({ title, endAtLocal });
+  const now = new Date("2026-10-12T18:00:00Z"); // 11:00 in Seattle
+
+  it("drops a booking that has already ended", () => {
+    expect(hideFinished([slot("over", "2026-10-12T10:00:00-07:00")], now)).toHaveLength(0);
+  });
+
+  it("keeps one that is still running", () => {
+    // 10:30-11:30 Seattle: started but not finished, so "happening now" still has
+    // something to point at.
+    const kept = hideFinished([slot("running", "2026-10-12T11:30:00-07:00")], now);
+    expect(kept.map((s) => s.title)).toEqual(["running"]);
+  });
+
+  it("keeps one that has not started", () => {
+    const kept = hideFinished([slot("later", "2026-10-12T17:00:00-07:00")], now);
+    expect(kept.map((s) => s.title)).toEqual(["later"]);
+  });
+
+  it("treats a booking ending exactly now as finished", () => {
+    expect(hideFinished([slot("just-ended", "2026-10-12T11:00:00-07:00")], now)).toHaveLength(0);
+  });
+
+  it("keeps a booking that ends one second from now", () => {
+    expect(hideFinished([slot("almost", "2026-10-12T11:00:01-07:00")], now)).toHaveLength(1);
+  });
+
+  it("compares instants, so the offset is respected", () => {
+    // 11:00 Seattle written as UTC is 18:00Z. Same instant, so it is finished either way.
+    expect(hideFinished([slot("utc-form", "2026-10-12T18:00:00Z")], now)).toHaveLength(0);
+  });
+
+  it("keeps a booking whose end cannot be read", () => {
+    // Showing something unreadable beats silently swallowing a booking.
+    expect(hideFinished([slot("broken", "not-a-date")], now)).toHaveLength(1);
+  });
+
+  it("drops nothing from an empty list", () => {
+    expect(hideFinished([], now)).toHaveLength(0);
   });
 });
 

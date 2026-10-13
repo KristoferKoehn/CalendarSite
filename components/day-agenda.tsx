@@ -8,7 +8,7 @@ import { getApiClient, type ApiError } from "@/lib/api";
 import { ErrorBanner } from "@/components/error-banner";
 import { WeekStrip } from "@/components/week-strip";
 import { useNow } from "@/lib/use-now";
-import { weekDays, canBookEmptyDay } from "@/lib/calendar";
+import { weekDays, canBookEmptyDay, hideFinished } from "@/lib/calendar";
 import {
   addDays,
   describeSlot,
@@ -204,6 +204,7 @@ export function AgendaBody({
   includeCancelled,
   onToggleCancelled,
   showEmptyAction = true,
+  hideFinished: dropFinished = false,
 }: {
   now: Date;
   /** Whether the day being shown is the viewer's today, which is what makes live phases
@@ -218,6 +219,8 @@ export function AgendaBody({
   onToggleCancelled: () => void;
   /** The kiosk hides "Book a room": it is a display, not a console. */
   showEmptyAction?: boolean;
+  /** The kiosk also hides bookings that are over, keeping the display about now and next. */
+  hideFinished?: boolean;
 }) {
   const roomNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -225,17 +228,16 @@ export function AgendaBody({
     return map;
   }, [resources]);
 
-  const visible = useMemo(
-    () =>
-      appointments
-        .filter((a) => includeCancelled || a.status !== "cancelled")
-        .slice()
-        .sort((a, b) => {
-          const byStart = a.startAtLocal.localeCompare(b.startAtLocal);
-          return byStart !== 0 ? byStart : a.title.localeCompare(b.title);
-        }),
-    [appointments, includeCancelled],
-  );
+  const listed = useMemo(() => {
+    // Cancelled bookings obey the toggle; finished ones are dropped outright when the
+    // view asks for it, because no toggle should bring back something already over.
+    const kept = appointments.filter((a) => includeCancelled || a.status !== "cancelled");
+    const filtered = dropFinished ? hideFinished(kept, now) : kept;
+    return filtered.slice().sort((a, b) => {
+      const byStart = a.startAtLocal.localeCompare(b.startAtLocal);
+      return byStart !== 0 ? byStart : a.title.localeCompare(b.title);
+    });
+  }, [appointments, includeCancelled, dropFinished, now]);
 
   const summary = useMemo(() => {
     let active = 0;
@@ -294,10 +296,19 @@ export function AgendaBody({
         )}
       </div>
 
-      {visible.length === 0 ? (
+      {listed.length === 0 ? (
         <div className="rounded-lg border border-dashed border-zinc-300 px-6 py-10 text-center dark:border-zinc-700">
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {isToday ? "Nothing booked for today." : "Nothing booked for this day."}
+            {/* "Nothing left today" rather than "Nothing booked" when everything has
+                already happened. The two are different facts, and on a kiosk the first is
+                the one a reader needs. */}
+            {appointments.length > 0
+              ? isToday
+                ? "Nothing left today."
+                : "Nothing left on this day."
+              : isToday
+                ? "Nothing booked for today."
+                : "Nothing booked for this day."}
           </p>
           {/* No invitation to book a day that has already gone: it is a dead end, and the
               empty state is the whole message. Today and future days keep it, and the
@@ -313,7 +324,7 @@ export function AgendaBody({
         </div>
       ) : (
         <ul className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white py-1 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
-          {visible.map((appointment) => (
+          {listed.map((appointment) => (
             <AgendaRow
               key={appointment.id}
               appointment={appointment}

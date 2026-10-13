@@ -59,6 +59,9 @@ function KioskView({ now }: { now: Date }) {
           onToggleCancelled={() => setIncludeCancelled((prev) => !prev)}
           // No "Book a room" button: nobody books from a wall display.
           showEmptyAction={false}
+          // And no finished bookings: a display should be about now and next, not about
+          // the meeting that ended two hours ago.
+          hideFinished
         />
       )}
     </div>

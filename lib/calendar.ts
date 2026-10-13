@@ -121,6 +121,27 @@ export function canBookEmptyDay({
   return actionEnabled && !isPast;
 }
 
+/**
+ * Drop bookings that have already finished.
+ *
+ * Used by the kiosk, where a finished booking is noise: the question on a wall display is
+ * what is happening now and what is next. A booking disappears the moment it ends rather
+ * than at the end of the hour, and one still running is kept — dropping it would make
+ * "happening now" a claim about something no longer on screen. A zero-length booking
+ * counts as finished, matching `describeSlot`, which never calls one active.
+ *
+ * Compares instants, so an offset-bearing Seattle string and a UTC one agree.
+ */
+export function hideFinished<T extends { endAtLocal: string }>(items: T[], now: Date): T[] {
+  return items.filter((item) => {
+    const end = new Date(item.endAtLocal).getTime();
+    // Malformed input is kept rather than silently dropped: a booking that cannot be read
+    // is better shown than hidden.
+    if (Number.isNaN(end)) return true;
+    return end > now.getTime();
+  });
+}
+
 /** The seven days of the week containing `date`. */export function weekDays(date: string, today: string): CalendarDay[] {
   const start = startOfWeek(date);
   const days: CalendarDay[] = [];
