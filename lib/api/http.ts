@@ -8,6 +8,7 @@ import {
   registerOutputSchema,
   resetPasswordOutputSchema,
   resourceListOutputSchema,
+  resendVerificationOutputSchema,
   verifyEmailOutputSchema,
   resourceSchema,
   userListOutputSchema,
@@ -25,6 +26,7 @@ import {
   type RegisterInput,
   type RegisterOutput,
   type ResendVerificationInput,
+  type ResendVerificationOutput,
   type ResetPasswordInput,
   type ResetPasswordOutput,
   type VerifyEmailInput,
@@ -120,8 +122,19 @@ export class HttpApiClient implements ApiClient {
   }
 
   /**
-   * Redeem a verification link. Answers 204 with no body, and needs no session: the link
-   * is opened from a mail client.
+   * Store a session token obtained elsewhere.
+   *
+   * Used by the verification link, which proves the address and hands back a session in the
+   * same response. There is no other way in: every other path that ends in a session goes
+   * through login, which already stores its own.
+   */
+  adoptToken(token: string): void {
+    this.deps.tokenStore.set(token);
+  }
+
+  /**
+   * Redeem a verification link. Needs no session — the link is opened from a mail client —
+   * and the response carries one, so the screen behind it is already signed in.
    */
   async verifyEmail(input: VerifyEmailInput): Promise<Result<VerifyEmailOutput, ApiError>> {
     return this.request({
@@ -129,7 +142,6 @@ export class HttpApiClient implements ApiClient {
       path: "/auth/verify-email",
       body: input,
       schema: verifyEmailOutputSchema,
-      noContent: true,
     });
   }
 
@@ -139,12 +151,12 @@ export class HttpApiClient implements ApiClient {
    */
   async resendVerification(
     input: ResendVerificationInput,
-  ): Promise<Result<VerifyEmailOutput, ApiError>> {
+  ): Promise<Result<ResendVerificationOutput, ApiError>> {
     return this.request({
       method: "POST",
       path: "/auth/resend-verification",
       body: input,
-      schema: verifyEmailOutputSchema,
+      schema: resendVerificationOutputSchema,
       noContent: true,
     });
   }

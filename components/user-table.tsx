@@ -34,6 +34,7 @@ export function UserTable({ users, currentUserId, onUpdate, onDelete }: Props) {
         <thead>
           <tr className="border-b">
             <th className="py-2">Email</th>
+            <th>Confirmed</th>
             <th>Role</th>
             <th>Agent</th>
             <th>Actions</th>
@@ -42,9 +43,28 @@ export function UserTable({ users, currentUserId, onUpdate, onDelete }: Props) {
         <tbody>
           {users.map((user) => {
             const isSelf = user.id === currentUserId;
+            const verified = Boolean(user.emailVerifiedAt);
             return (
               <tr key={user.id} className="border-b">
                 <td className="py-2">{user.email}</td>
+                <td>
+                  {/* Manual confirmation is here for the case it exists for: somebody who
+                      cannot receive the mail, whether because the address is mistyped or the
+                      provider will not deliver to it. Clearing it is the undo. */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={verified}
+                      onChange={(event) =>
+                        update(user.id, { emailVerified: event.target.checked })
+                      }
+                      aria-label={`Confirmed for ${user.email}`}
+                    />
+                    <span className={verified ? "text-zinc-500" : "text-amber-700"}>
+                      {verified ? "confirmed" : "not confirmed"}
+                    </span>
+                  </div>
+                </td>
                 <td>{user.role}</td>
                 <td>
                   <input

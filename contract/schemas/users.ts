@@ -48,10 +48,21 @@ export const updateUserInputSchema = z
   .object({
     role: roleSchema.optional(),
     isAgent: z.boolean().optional(),
+    /**
+     * Set or clear the address's confirmation. A boolean rather than a timestamp: the reason
+     * an admin touches this is that somebody cannot receive the mail, and the moment it was
+     * proven is the server's to record. Inventing one here would be recording a confirmation
+     * that never happened.
+     */
+    emailVerified: z.boolean().optional(),
   })
-  .refine((value) => value.role !== undefined || value.isAgent !== undefined, {
-    message: "at least one of role or isAgent is required",
-  });
+  .refine(
+    (value) =>
+      value.role !== undefined ||
+      value.isAgent !== undefined ||
+      value.emailVerified !== undefined,
+    { message: "at least one of role, isAgent or emailVerified is required" },
+  );
 export type UpdateUserInput = z.infer<typeof updateUserInputSchema>;
 
 /**

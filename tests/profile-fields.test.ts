@@ -90,45 +90,31 @@ describe("profileDraft", () => {
 });
 
 describe("registerInputSchema", () => {
-  // This is the guard the sign-up form runs before submitting, so its behaviour is what
-  // decides whether a half-filled birthday is refused rather than quietly sent.
-  it("accepts credentials alone", () => {
+  // The sign-up form is two fields now. Confirmation gates access, and the details are
+  // collected on the screen the link leads to, so anything beyond credentials is ignored.
+  it("accepts an address and a password", () => {
     const parsed = registerInputSchema.safeParse({ email: "a@b.com", password: "password123" });
     expect(parsed.success).toBe(true);
   });
 
-  it("refuses a half-filled birthday, from either direction", () => {
-    for (const birthday of [{ birthMonth: 6 }, { birthDay: 15 }]) {
-      const parsed = registerInputSchema.safeParse({
-        email: "a@b.com", password: "password123", ...birthday,
-      });
-      expect(parsed.success).toBe(false);
-    }
+  it("still refuses a short password and a malformed address", () => {
+    expect(registerInputSchema.safeParse({ email: "a@b.com", password: "short" }).success).toBe(false);
+    expect(registerInputSchema.safeParse({ email: "nope", password: "password123" }).success).toBe(false);
   });
 
-  it("accepts a complete birthday", () => {
+  it("does not carry profile fields any more", () => {
+    // Extra keys are stripped rather than stored, which is what makes a stale client that
+    // still sends them harmless.
     const parsed = registerInputSchema.safeParse({
-      email: "a@b.com", password: "password123", birthMonth: 6, birthDay: 15,
+      email: "a@b.com", password: "password123", displayName: "Ignored", birthMonth: 6,
     });
     expect(parsed.success).toBe(true);
-  });
-
-  it("refuses a birthday out of range", () => {
-    for (const birthday of [
-      { birthMonth: 13, birthDay: 1 },
-      { birthMonth: 0, birthDay: 1 },
-      { birthMonth: 6, birthDay: 32 },
-      { birthMonth: 6, birthDay: 0 },
-    ]) {
-      const parsed = registerInputSchema.safeParse({
-        email: "a@b.com", password: "password123", ...birthday,
-      });
-      expect(parsed.success).toBe(false);
-    }
+    expect(parsed.success && "displayName" in parsed.data).toBe(false);
+    expect(parsed.success && "birthMonth" in parsed.data).toBe(false);
   });
 
   it("accepts a draft converted from a fully blank form", () => {
-    // The end-to-end path the sign-up page takes: blank optional section, converted, parsed.
+    // The end-to-end path the sign-up page takes: credentials only.
     const parsed = registerInputSchema.safeParse({
       email: "a@b.com", password: "password123", ...draftToProfile(emptyProfileDraft),
     });
@@ -136,9 +122,9 @@ describe("registerInputSchema", () => {
   });
 
   it("refuses a draft converted from a half-filled form", () => {
-    // Two separate guards, deliberately. The schema catches a half birthday sent directly,
-    // and draftToProfile refuses to produce one in the first place — so there is no path
-    // where a half-filled form becomes a valid payload meaning "no birthday".
+    // The details screen runs this, and draftToProfile refuses to produce a half birthday at
+    // all — so there is no path where a half-filled form becomes a valid payload meaning
+    // "no birthday".
     const partial = draft({ birthMonth: "6" });
     expect(birthdayIsPartial(partial)).toBe(true);
     expect(() => draftToProfile(partial)).toThrow();

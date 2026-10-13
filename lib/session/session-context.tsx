@@ -19,6 +19,8 @@ type SessionValue = {
   user: User | null;
   login: (input: LoginInput) => Promise<ApiError | null>;
   register: (input: RegisterInput) => Promise<ApiError | null>;
+  /** Adopt a session token obtained elsewhere, which only the verification link does. */
+  adoptSession: (token: string) => Promise<boolean>;
   logout: () => void;
   /** Re-read the current user, e.g. after editing the profile. */
   refresh: () => Promise<void>;
@@ -76,13 +78,37 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (input: RegisterInput): Promise<ApiError | null> => {
-      const api = getApiClient();
-      const result = await api.register(input);
+      const result = await getApiClient().register(input);
       if (!result.ok) return result.error;
-      return login(input);
+      // Deliberately does not sign in. Confirmation gates access, so a session here would
+      // put an unconfirmed account inside the app; the sign-up screen sends the person to
+      // their inbox instead.
+      return null;
     },
-    [login],
+    [],
   );
+
+  /**
+   * Adopt a session token obtained elsewhere and load the user it belongs to.
+   *
+   * Only the verification link does this: it proves the address and hands back a session, so
+   * the details screen behind it is signed in without a password being typed moments after
+   * the address was proven by other means.
+   */
+  const adoptSession = useCallback(async (token: string): Promise<boolean> => {
+    const api = getApiClient();
+    api.adoptToken(token);
+    const me = await api.me();
+    if (!me.ok) {
+      // A token that does not work is worse than none: leaving it would make every later
+      // request fail as though the session had expired.
+      api.logout();
+      return false;
+    }
+    setUser(me.value);
+    setStatus("authenticated");
+    return true;
+  }, []);
 
   const logout = useCallback(() => {
     getApiClient().logout();
@@ -103,8 +129,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ status, user, login, register, logout, refresh, setUser }),
-    [status, user, login, register, logout, refresh],
+    () => ({ status, user, login, register, adoptSession, logout, refresh, setUser }),
+    [status, user, login, register, adoptSession, logout, refresh],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

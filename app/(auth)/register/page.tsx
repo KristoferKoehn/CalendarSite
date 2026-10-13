@@ -1,130 +1,125 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { registerInputSchema } from "@/contract";
+import { getApiClient } from "@/lib/api";
 import { useSession } from "@/lib/session/session-context";
 import { firstZodMessage } from "@/lib/validation";
-import {
-  birthdayIsPartial,
-  draftToProfile,
-  emptyProfileDraft,
-  ProfileFields,
-  type ProfileDraft,
-} from "@/components/profile-fields";
 
+/**
+ * Signing up is two fields and one instruction.
+ *
+ * The account is created but not entered: confirmation gates access, so the only useful thing
+ * to say next is to check the inbox. Details are collected on the screen the link leads to,
+ * where the address has been proven and the account is worth describing.
+ *
+ * It deliberately does not sign the person in. A session here would mean an unconfirmed
+ * account sitting inside the app, and the gate would have to explain itself on every screen
+ * rather than once, here.
+ */
 export default function RegisterPage() {
-  const { status, register } = useSession();
-  const router = useRouter();
+  const { status } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [profile, setProfile] = useState<ProfileDraft>(emptyProfileDraft);
-  const [showProfile, setShowProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [sent, setSent] = useState(false);
 
+  // Somebody already signed in has no business here.
   useEffect(() => {
-    if (status === "authenticated") router.replace("/appointments");
-  }, [status, router]);
+    if (status === "authenticated") {
+      window.location.replace("/today");
+    }
+  }, [status]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
 
-    const parsed = registerInputSchema.safeParse({
-      email,
-      password,
-      ...draftToProfile(profile),
-    });
+    const parsed = registerInputSchema.safeParse({ email, password });
     if (!parsed.success) {
-      // A half-filled birthday is the likely failure here, and it is only reachable from the
-      // optional section, so open it rather than reporting an error against a hidden field.
-      if (birthdayIsPartial(profile)) setShowProfile(true);
       setError(firstZodMessage(parsed.error));
       return;
     }
 
     setPending(true);
-    const result = await register(parsed.data);
+    const result = await getApiClient().register(parsed.data);
     setPending(false);
-    if (result) {
-      setError(result.message);
+    if (!result.ok) {
+      setError(result.error.message);
       return;
     }
-    router.replace("/appointments");
+    // Nowhere else: telling somebody their account exists is only true if they can get into
+    // it, and they cannot until they follow the link.
+    setSent(true);
+  }
+
+  if (sent) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-xl font-semibold">Check your email</h1>
+        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          We sent a confirmation link to <span className="font-medium">{email}</span>.
+          Follow it to finish setting up your account — the link works once, and expires in
+          24 hours.
+        </p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Nothing there? Look in spam before asking for another.
+        </p>
+        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          <Link href="/resend-verification" className="underline">
+            Send a new link
+          </Link>
+        </p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Create account</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-3">
-          <label className="block text-sm">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium">
             Email
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 block w-full rounded border border-zinc-300 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
-            />
           </label>
-          <label className="block text-sm">
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="mt-1 w-full rounded border border-zinc-300 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium">
             Password
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="mt-1 block w-full rounded border border-zinc-300 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
-            />
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">8+ characters</span>
           </label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="mt-1 w-full rounded border border-zinc-300 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900"
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">8+ characters</p>
         </div>
-
-        {/* Optional, and folded away by default: two fields is a sign-up, and a wall of
-            questions is a reason not to finish one. Anyone who wants to say who they are can,
-            and everyone else can do it later in Settings. */}
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={() => setShowProfile((value) => !value)}
-            aria-expanded={showProfile}
-            className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-sm"
-          >
-            <span aria-hidden="true" className="text-xs text-zinc-400">
-              {showProfile ? "▾" : "▸"}
-            </span>
-            Add your details
-            <span className="text-zinc-500 dark:text-zinc-400">(optional)</span>
-          </button>
-
-          {showProfile && (
-            <div className="space-y-3 border-t border-zinc-100 p-3 dark:border-zinc-800">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Everyone signed in can see these. Adding a name shows it on the calendar
-                instead of your email address.
-              </p>
-              <ProfileFields
-                draft={profile}
-                onChange={setProfile}
-                emailForPlaceholder={email || undefined}
-              />
-            </div>
-          )}
-        </div>
-
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50"
+          className="w-full rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
         >
           {pending ? "Creating..." : "Create account"}
         </button>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          You will add your name and the rest after confirming your address.
+        </p>
       </form>
-      <p className="text-sm text-zinc-600">
+      <p className="text-sm text-zinc-600 dark:text-zinc-300">
         Have an account?{" "}
         <Link href="/login" className="underline">
           Sign in
