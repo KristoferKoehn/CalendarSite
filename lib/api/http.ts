@@ -58,6 +58,22 @@ type RequestOptions<T> = {
 };
 
 /**
+ * Joins the configured base to a request path by hand, rather than with `new URL(path, base)`.
+ *
+ * `new URL` resolves the second argument *against* the first, so an absolute path replaces the
+ * base's path entirely: with a base of `https://host/api`, `new URL("/auth/login", base)` is
+ * `https://host/auth/login` — the prefix silently disappears. That ruled out serving the API
+ * behind a path on the same host as the site, which is the one arrangement that removes CORS
+ * completely, because a same-origin request never asks permission.
+ *
+ * Concatenating instead keeps whatever path the base carries, so `https://host/api` and
+ * `https://host` both work and the deployment can choose.
+ */
+function joinUrl(baseUrl: string, path: string): string {
+  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
+/**
  * How long a request may take before it is abandoned.
  *
  * A network that silently drops packets leaves a request hanging rather than failing, so without
@@ -376,7 +392,7 @@ export class HttpApiClient implements ApiClient {
       );
     }
 
-    const url = new URL(options.path, this.deps.baseUrl);
+    const url = new URL(joinUrl(this.deps.baseUrl, options.path));
 
     if (options.query) {
       for (const [key, value] of Object.entries(options.query)) {

@@ -49,6 +49,52 @@ function fetchRejectingWith(code: string): typeof fetch {
     )) as unknown as typeof fetch;
 }
 
+describe("base URL handling", () => {
+  /** Captures the URL a request actually goes to. */
+  function captureClient(baseUrl: string) {
+    let requested: string | undefined;
+    const respond = ((url: string) => {
+      requested = url;
+      return Promise.resolve(
+        new Response(JSON.stringify({ appointments: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    }) as unknown as typeof fetch;
+    const client = new HttpApiClient({ baseUrl, tokenStore: memoryTokenStore(), fetchFn: respond });
+    return { client, get: () => requested };
+  }
+
+  it("keeps a path in the base URL", async () => {
+    // The trap: `new URL("/auth/login", "https://host/api")` is `https://host/auth/login`, because
+    // an absolute path replaces the base's path. That silently drops the prefix and would send
+    // every request to the frontend instead of the API.
+    const { client, get } = captureClient("https://host/api");
+    await client.listAppointments();
+    expect(get()).toBe("https://host/api/appointments");
+  });
+
+  it("does not double the slash when the base ends in one", async () => {
+    const { client, get } = captureClient("https://host/api/");
+    await client.listAppointments();
+    expect(get()).toBe("https://host/api/appointments");
+  });
+
+  it("still works with no path in the base", async () => {
+    const { client, get } = captureClient("https://host:4000");
+    await client.listAppointments();
+    expect(get()).toBe("https://host:4000/appointments");
+  });
+
+  it("keeps query parameters after the joined path", async () => {
+    const { client, get } = captureClient("https://host/api");
+    await client.listAppointments({ from: "2026-10-13", to: "2026-10-13" });
+    expect(get()).toContain("https://host/api/appointments?");
+    expect(get()).toContain("from=2026-10-13");
+  });
+});
+
 describe("network failures", () => {
   it("names a refused connection rather than saying 'Network error'", async () => {
     const { client } = clientWith(fetchRejectingWith("ERR_CONNECTION_REFUSED"));
