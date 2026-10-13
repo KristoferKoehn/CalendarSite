@@ -16,14 +16,17 @@ export type Role = z.infer<typeof roleSchema>;
 export const userSchema = z.object({
   id: uuidSchema,
   email: emailSchema,
-  // Profile fields are tolerated as absent and normalised to null, so a response
-  // from an older build (or a fixture) still parses. The API always sends them.
-  displayName: z.string().nullish().transform((v) => v ?? null),
-  birthMonth: z.number().int().min(1).max(12).nullish().transform((v) => v ?? null),
-  birthDay: z.number().int().min(1).max(31).nullish().transform((v) => v ?? null),
-  pronouns: z.string().nullish().transform((v) => v ?? null),
-  jobTitle: z.string().nullish().transform((v) => v ?? null),
-  bio: z.string().nullish().transform((v) => v ?? null),
+  // Nullable, not nullish. These must NOT be optional: `HttpApiClient.request` is
+  // generic over the schema, and TypeScript infers from the schema's *input* type,
+  // so an optional or transformed field widens the result to `| undefined` and
+  // stops matching the `User` returned by the ApiClient interface. The API always
+  // sends these keys, so requiring them is also the accurate contract.
+  displayName: z.string().nullable(),
+  birthMonth: z.number().int().min(1).max(12).nullable(),
+  birthDay: z.number().int().min(1).max(31).nullable(),
+  pronouns: z.string().nullable(),
+  jobTitle: z.string().nullable(),
+  bio: z.string().nullable(),
   role: roleSchema,
   isAgent: z.boolean(),
   createdAt: isoTimestampSchema,

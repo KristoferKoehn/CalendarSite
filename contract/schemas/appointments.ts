@@ -68,10 +68,10 @@ export const appointmentSchema = z.object({
    * one. Use `appointmentOwnerLabel` to render: it falls back to `ownerEmail`,
    * which is the durable label that survives the owner's account being deleted.
    *
-   * Tolerated as absent and normalised to null, so responses from an older build
-   * still parse.
+   * Nullable, not optional — see the note in `userSchema` about generic schema
+   * inference.
    */
-  ownerName: z.string().nullish().transform((v) => v ?? null),
+  ownerName: z.string().nullable(),
   resourceId: uuidSchema,
   title: appointmentTitleSchema,
   description: appointmentDescriptionSchema,

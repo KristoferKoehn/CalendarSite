@@ -18,6 +18,7 @@ describe("appointmentSchema", () => {
     id: "3f2a7c1b-0000-4000-8000-000000000001",
     userId: "3f2a7c1b-0000-4000-8000-000000000002",
     ownerEmail: "booker@example.com",
+    ownerName: null,
     resourceId: "3f2a7c1b-0000-4000-8000-000000000003",
     title: "Standup",
     description: "Daily sync",
@@ -36,7 +37,7 @@ describe("appointmentSchema", () => {
   });
 
   it("requires ownerEmail, since it outlives the owner account", () => {
-    const { ownerEmail: _omitted, ...withoutOwner } = valid;
+    const withoutOwner = { ...valid, ownerEmail: undefined };
     expect(appointmentSchema.safeParse(withoutOwner).success).toBe(false);
   });
 
@@ -81,6 +82,12 @@ describe("userSchema", () => {
   const base = {
     id: "3f2a7c1b-0000-4000-8000-000000000002",
     email: "user@example.com",
+    displayName: null,
+    birthMonth: null,
+    birthDay: null,
+    pronouns: null,
+    jobTitle: null,
+    bio: null,
     role: "user",
     isAgent: false,
     createdAt: "2026-10-01T00:00:00Z",
@@ -110,10 +117,12 @@ describe("userSchema", () => {
     ).toBe(true);
   });
 
-  it("still parses a response from an older build with no profile keys", () => {
-    // Absent keys are normalised rather than rejected.
-    const parsed = userSchema.safeParse({ ...base, displayName: undefined });
-    expect(parsed.success).toBe(true);
+  it("requires the profile keys to be present", () => {
+    // The API always sends them; omitting one is a contract violation, and the
+    // strict shape is what keeps generic schema inference from widening to
+    // `| undefined`.
+    const withoutName = { ...base, displayName: undefined };
+    expect(userSchema.safeParse(withoutName).success).toBe(false);
   });
 });
 
