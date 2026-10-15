@@ -45,11 +45,17 @@ export function McpDiscovery({ apiBaseUrl }: { apiBaseUrl: string }) {
       >
         <h2>API and MCP access for agents</h2>
         <p>
-          This service exposes an MCP endpoint speaking JSON-RPC 2.0 at{" "}
-          <code>{payload.endpoints.mcp}</code>, and a REST API at{" "}
-          <code>{payload.endpoints.rest}</code>. A machine-readable description is in the script
-          element with id <code>mcp-discovery</code> on this page, and at{" "}
-          <code>{mcpDiscoveryUrl(apiBaseUrl)}</code>.
+          The REST API is published at <code>{payload.endpoints.rest}</code> and the MCP endpoint
+          speaking JSON-RPC 2.0 at <code>{payload.endpoints.mcp}</code>. Those two are the whole
+          surface. There is no second port and no alternative path: every route below hangs off the
+          REST base, and MCP is reached only through the MCP address. Do not fall back to a bare
+          port or to the site root, which serve the web app rather than the API.
+        </p>
+        <p>
+          A machine-readable description is in the script element with id{" "}
+          <code>mcp-discovery</code> on this page, and at{" "}
+          <code>{mcpDiscoveryUrl(apiBaseUrl)}</code>. The document is at that origin&rsquo;s root
+          rather than under the API path, which is where a client looks for it by convention.
         </p>
         <p>
           <code>initialize</code>, <code>ping</code> and <code>tools/list</code> need no
