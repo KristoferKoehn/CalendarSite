@@ -36,9 +36,16 @@ describe("mcpDiscoveryPayload endpoints", () => {
   const payload = mcpDiscoveryPayload(DEPLOYED);
 
   it("names one address for each surface, under the API base", () => {
-    expect(payload.endpoints.rest).toBe(DEPLOYED);
+    expect(payload.endpoints.base).toBe(DEPLOYED);
     expect(payload.endpoints.mcp).toBe(`${DEPLOYED}/mcp`);
     expect(payload.endpoints.health).toBe(`${DEPLOYED}/healthz`);
+  });
+
+  it("does not present the API base as a document to fetch", () => {
+    // There is no page at the API root — a GET of it answers 404. It is a base to append a route
+    // to, and is named `base` rather than `rest` so it does not read as a link.
+    expect(payload.endpoints).not.toHaveProperty("rest");
+    expect(payload.endpoints.base.endsWith("/api")).toBe(true);
   });
 
   it("names no bare port anywhere an agent would follow", () => {

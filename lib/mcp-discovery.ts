@@ -32,10 +32,13 @@ export function mcpDiscoveryPayload(apiBaseUrl: string) {
     ...MCP_DOCS,
     endpoints: {
       // The one address an agent should use for each surface. Every other path that happens to
-      // reach the same backend — the old bare port, or the site root — is an accident of the
-      // proxy configuration rather than a published endpoint, and is deliberately not listed.
+      // reach the same backend — the old bare port, or the site root — is an accident of the proxy
+      // configuration rather than a published endpoint, and is deliberately not listed.
+      //
+      // `rest` is a base to append a route to, not a document: the API has no page at its own root,
+      // so a GET of it answers 404. `base` names it, so nobody reads it as a link to fetch.
+      base: base,
       mcp: `${base}/mcp`,
-      rest: base,
       health: `${base}/healthz`,
       // The discovery document itself. It cannot move under the API path: a `.well-known`
       // document is required to be at the root of an origin for clients to find it by

@@ -9,7 +9,7 @@ describe("mcpDiscoveryPayload", () => {
 
   it("carries absolute endpoint URLs, since a relative one is useless to a scraper", () => {
     expect(payload.endpoints.mcp).toBe(`${BASE}/mcp`);
-    expect(payload.endpoints.rest).toBe(BASE);
+    expect(payload.endpoints.base).toBe(BASE);
     expect(payload.endpoints.health).toBe(`${BASE}/healthz`);
   });
 
@@ -18,7 +18,7 @@ describe("mcpDiscoveryPayload", () => {
     // would otherwise produce a doubled slash in every URL.
     const withSlash = mcpDiscoveryPayload(`${BASE}/`);
     expect(withSlash.endpoints.mcp).toBe(`${BASE}/mcp`);
-    expect(withSlash.endpoints.rest).toBe(BASE);
+    expect(withSlash.endpoints.base).toBe(BASE);
   });
 
   it("names the two public tools and nothing else", () => {
