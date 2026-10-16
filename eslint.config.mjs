@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // A Godot WebAssembly export, served as static files from `public`. It is vendored compiler
+    // output — the engine runtime and the audio worklets it ships with — not source anyone here
+    // will edit. Linting it produces a hundred warnings about minified variables and eight errors
+    // about `this` aliasing, all of which would have to be ignored individually to say what this
+    // one line says: it is not ours to fix.
+    "public/match3/**",
   ]),
 ]);
 

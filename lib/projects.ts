@@ -38,6 +38,20 @@ export const PROJECTS: Project[] = [
     stack: ["TypeScript", "Go", "Postgres"],
     when: "2026",
   },
+  {
+    name: "Match 3",
+    // The bare path, which the app router redirects to the export's entry file. `/match3/` on its
+    // own is a 308 to nowhere: Next does not serve a directory index for a static folder.
+    href: "/match3",
+    status: "live",
+    description:
+      "A gem-matching puzzle game. Swap neighbouring pieces to line up three or more, clear them, " +
+      "and keep the board from filling: every move is scored and you have twenty-five of them. " +
+      "Built as a single self-contained build that runs in the browser with no install.",
+    scope: ["Puzzle", "Score chasing", "Keyboard and touch"],
+    stack: ["Godot", "GDScript", "WebAssembly"],
+    when: "2026",
+  },
 ];
 
 /** Display text for each status, kept next to the type so the two cannot drift. */
