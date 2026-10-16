@@ -51,6 +51,22 @@ jobs:
           npm install
           if ($LASTEXITCODE -ne 0) { throw "install failed (exit $LASTEXITCODE)" }
 
+      - name: Clear generated Next.js types
+        run: |
+          # tsconfig includes .next/types/**/*.ts, and .next/ is gitignored, so it survives
+          # between runs on the self-hosted runner. After a route change those generated types
+          # still describe the old routes and typecheck fails on files that no longer exist —
+          # pointing at the build output rather than at anything wrong with the source.
+          #
+          # Removing it first is the only way to typecheck the code rather than the last build.
+          # It costs the build having to regenerate types, which it does anyway.
+          if (Test-Path .next) {
+            Remove-Item -Recurse -Force .next
+            Write-Host "removed stale .next"
+          } else {
+            Write-Host "no .next to remove"
+          }
+
       - name: Typecheck
         run: |
           npm run typecheck
