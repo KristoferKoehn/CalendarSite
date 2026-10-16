@@ -229,6 +229,22 @@ export const MCP_DOCS = {
         "type": "object"
       },
       "public": false
+    },
+    {
+      "name": "users.delete",
+      "description": "Permanently delete a user account. Admin accounts only. An admin cannot delete their own account, and the last remaining admin cannot be deleted. The account's appointments are kept.",
+      "inputSchema": {
+        "properties": {
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
+      "public": false
     }
   ]
 } as const;

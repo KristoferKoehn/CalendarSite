@@ -66,10 +66,16 @@ describe("mcpDiscoveryUrl", () => {
  * Set MCP_TEST_BASE to point at something other than the deployed instance.
  */
 describe("embedded docs against the live server", () => {
-  const reachableBase = process.env.MCP_TEST_BASE ?? "https://couchcollective.software:4000";
+  // The deployed API is served under /api on the site's own origin. This used to name the bare
+  // :4000 port, which stopped existing when the API moved behind the proxy — the test then waited
+  // out its own timeout on an address nothing routes to and reported a failure that had nothing to
+  // do with the documentation.
+  const reachableBase = process.env.MCP_TEST_BASE ?? "https://couchcollective.software/api";
 
+  // Above the 5s default, because this reaches the network and the fetch below allows 8s before it
+  // gives up and skips.
   it("lists the same tools the server publishes, with the same schemas", async () => {
-    let live: { tools?: { name: string; description: string; inputSchema: unknown }[] };
+    let live: { tools?: { name: string; description: string; inputSchema: unknown; public?: boolean }[] };
     try {
       const response = await fetch(`${reachableBase}/mcp`, {
         method: "POST",
@@ -84,7 +90,7 @@ describe("embedded docs against the live server", () => {
     }
 
     const liveTools = (live.tools ?? [])
-      .map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }))
+      .map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema, public: t.public }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     if (liveTools.length === 0) {
@@ -93,11 +99,15 @@ describe("embedded docs against the live server", () => {
     }
 
     const embedded = MCP_DOCS.tools
-      .map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }))
+      .map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema, public: t.public }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     // A deep comparison, so a renamed argument or a newly required field is caught rather than
     // only a renamed tool. Run `node scripts/generate-mcp-docs.mjs` to regenerate.
+    //
+    // `public` is included deliberately. It was previously derived in the generator from the tool's
+    // name, so this comparison could not see the two disagree — adding a public tool on the backend
+    // would have left the embedded docs claiming it needed a token, and the test would have passed.
     expect(embedded).toEqual(liveTools);
-  });
+  }, 20_000);
 });
