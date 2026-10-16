@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/*
+ * Dark mode is driven by a class on <html>, not by the operating system directly.
+ *
+ * It was the built-in `prefers-color-scheme` variant, which meant the theme was whatever the OS
+ * said and could not be chosen. The app was already fully themed for both — 211 `dark:` utilities
+ * across 19 files — so the only thing missing was a way to select one.
+ *
+ * The system preference is still honoured: a small inline script in the root layout resolves
+ * "system" to the OS setting and writes the class before the first paint, so a visitor with no
+ * stored preference gets exactly what they got before. That script is why this can be class-based
+ * without a flash of the wrong theme — by the time anything is painted, the class is already right.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -12,11 +26,9 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 body {

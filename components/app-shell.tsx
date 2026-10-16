@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { userLabel } from "@/contract";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { UnverifiedEmailNudge } from "@/components/unverified-email-nudge";
 import { LANDING } from "@/lib/landing";
 import { useSession } from "@/lib/session/session-context";
@@ -52,9 +53,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           )}
           <div className="ml-auto flex items-center gap-3">
-            <Link href="/settings" className="text-zinc-600 hover:underline">
+            <Link href="/settings" className="text-zinc-600 hover:underline dark:text-zinc-400">
               {user ? userLabel(user) : ""}
             </Link>
+            <ThemeToggle />
             <button
               onClick={handleLogout}
               className="rounded border px-2 py-1"

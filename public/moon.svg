@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
+     stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+     role="img" aria-label="Dark">
+  <title>Dark</title>
+  <!--
+    A crescent drawn as one closed path rather than a circle with a mask, so it needs no defs and
+    nothing that can collide when two icons appear on the same page. The two arcs meet at the
+    tips; the outer is a full half-circle of r=8, the inner a shallower arc that carves the bite.
+  -->
+  <path d="M20.5 14.4A8.5 8.5 0 0 1 9.6 3.5a8.5 8.5 0 1 0 10.9 10.9z" />
+</svg>
