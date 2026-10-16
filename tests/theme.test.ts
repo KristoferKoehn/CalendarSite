@@ -6,7 +6,8 @@ import {
   resolveTheme,
   themeBootstrapScript,
   type Theme,
-} from "@/lib/theme";
+} from "@/lib/theme-bootstrap";
+import { DARK_CLASS as CLIENT_DARK_CLASS, THEME_STORAGE_KEY as CLIENT_KEY } from "@/lib/theme";
 
 /**
  * The theme preference, and the bootstrap script that applies it before the first paint.
@@ -15,7 +16,21 @@ import {
  * class name as literals. If those drift from the module the app uses, the theme would be applied
  * under one key and read under another and the toggle would appear to do nothing on reload — a
  * failure that is invisible until someone reloads a page they just changed.
+ *
+ * The tokens live in a module without `"use client"` so the server layout can use the script. These
+ * tests also assert the client module re-exports the same values, because two copies would be
+ * exactly the drift this file exists to catch.
  */
+
+describe("the client module and the server module agree", () => {
+  it("re-exports the same storage key", () => {
+    expect(CLIENT_KEY).toBe(THEME_STORAGE_KEY);
+  });
+
+  it("re-exports the same class name", () => {
+    expect(CLIENT_DARK_CLASS).toBe(DARK_CLASS);
+  });
+});
 
 describe("resolveTheme", () => {
   it("resolves system to the OS preference", () => {

@@ -1,54 +1,22 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import {
+  DARK_CLASS,
+  THEME_STORAGE_KEY,
+  resolveTheme,
+  type Theme,
+} from "@/lib/theme-bootstrap";
 
 /**
- * Which colour scheme to use.
+ * The theme preference for this browser.
  *
- * Three states rather than two, because "follow my system" is a real preference and dropping it
- * would be a regression: before this, the app followed the OS and nothing else. Someone who wants
- * their machine to decide at sunset should still be able to say so.
+ * The tokens, the labels and the bootstrap script live in `lib/theme-bootstrap.ts`, which has no
+ * `"use client"` — the root layout is a server component and must be able to call the script while
+ * rendering the head. They are re-exported here so consumers have one import for everything.
  */
-export type Theme = "light" | "dark" | "system";
-
-export const THEME_LABELS: Record<Theme, string> = {
-  light: "Light",
-  dark: "Dark",
-  system: "Match system",
-};
-
-export const THEME_STORAGE_KEY = "calendarsite.theme";
-
-/** The class the `dark:` variant keys off. See `@custom-variant` in globals.css. */
-export const DARK_CLASS = "dark";
-
-/**
- * The script that applies the theme before the first paint.
- *
- * Exported as a string, and inlined into the document head as a blocking script, because the
- * alternative is a flash: React cannot run early enough, so a theme chosen in JavaScript would
- * only apply after hydration and the wrong colours would be painted first. This runs before
- * anything is rendered.
- *
- * Kept as a string rather than written inline in the layout so the storage key and the class name
- * live in one place. The layout cannot import a function and also run it synchronously in the
- * browser, so the source of truth is repeated here as literals — the test asserts they match.
- */
-export function themeBootstrapScript(): string {
-  return `(function(){try{
-var k=${JSON.stringify(THEME_STORAGE_KEY)};var c=${JSON.stringify(DARK_CLASS)};
-var s=localStorage.getItem(k);
-var d=s==="dark"||((s===null||s==="system")&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-document.documentElement.classList.toggle(c,d);
-document.documentElement.style.colorScheme=d?"dark":"light";
-}catch(e){}})();`;
-}
-
-/** Resolve a preference to the theme actually shown. */
-export function resolveTheme(preference: Theme, systemPrefersDark: boolean): "light" | "dark" {
-  if (preference === "system") return systemPrefersDark ? "dark" : "light";
-  return preference;
-}
+export { DARK_CLASS, THEME_LABELS, THEME_STORAGE_KEY, resolveTheme, themeBootstrapScript } from "@/lib/theme-bootstrap";
+export type { Theme } from "@/lib/theme-bootstrap";
 
 export function prefersDark(): boolean {
   try {
