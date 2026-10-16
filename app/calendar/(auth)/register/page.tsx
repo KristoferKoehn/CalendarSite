@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { registerInputSchema } from "@/contract";
 import { getApiClient } from "@/lib/api";
-import { LANDING } from "@/lib/landing";
+import { CALENDAR_LANDING } from "@/lib/landing";
 import { useSession } from "@/lib/session/session-context";
 import { firstZodMessage } from "@/lib/validation";
 
@@ -30,7 +30,7 @@ export default function RegisterPage() {
   // Somebody already signed in has no business here.
   useEffect(() => {
     if (status === "authenticated") {
-      window.location.replace(LANDING);
+      window.location.replace(CALENDAR_LANDING);
     }
   }, [status]);
 
@@ -69,7 +69,7 @@ export default function RegisterPage() {
           Nothing there? Look in spam before asking for another.
         </p>
         <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          <Link href="/resend-verification" className="underline">
+          <Link href="/calendar/resend-verification" className="underline">
             Send a new link
           </Link>
         </p>
@@ -122,7 +122,7 @@ export default function RegisterPage() {
       </form>
       <p className="text-sm text-zinc-600 dark:text-zinc-300">
         Have an account?{" "}
-        <Link href="/login" className="underline">
+        <Link href="/calendar/login" className="underline">
           Sign in
         </Link>
       </p>

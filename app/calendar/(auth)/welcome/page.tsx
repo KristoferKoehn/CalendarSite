@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { profileUpdateInputSchema } from "@/contract";
 import { getApiClient } from "@/lib/api";
-import { LANDING } from "@/lib/landing";
+import { CALENDAR_LANDING } from "@/lib/landing";
 import { useSession } from "@/lib/session/session-context";
 import {
   birthdayIsPartial,
@@ -39,14 +39,14 @@ export default function WelcomePage() {
   // Arriving here without a session is either a stale bookmark or a hand-typed URL. There is
   // no recovery from this page itself: the details belong to an account.
   useEffect(() => {
-    if (status === "anonymous") router.replace("/login");
+    if (status === "anonymous") router.replace("/calendar/login");
   }, [status, router]);
 
   // Already confirmed and already named. Sending somebody back through a form they have
   // completed would be a worse greeting than the calendar.
   useEffect(() => {
     if (status === "authenticated" && user?.displayName?.trim()) {
-      router.replace(LANDING);
+      router.replace(CALENDAR_LANDING);
     }
   }, [status, user, router]);
 
@@ -78,7 +78,7 @@ export default function WelcomePage() {
     // checks confirmation, but leaving a stale user in context would make the rest of the app
     // render as though nothing had been saved.
     setUser(result.value);
-    router.replace(LANDING);
+    router.replace(CALENDAR_LANDING);
   }
 
   if (status === "loading") {
@@ -122,7 +122,7 @@ export default function WelcomePage() {
         </button>
 
         <Link
-          href={LANDING}
+          href={CALENDAR_LANDING}
           className="block text-center text-sm text-zinc-500 underline underline-offset-2 dark:text-zinc-400"
         >
           Skip for now
@@ -133,7 +133,7 @@ export default function WelcomePage() {
         type="button"
         onClick={() => {
           logout();
-          router.replace("/login");
+          router.replace("/calendar/login");
         }}
         className="text-sm text-zinc-500 underline underline-offset-2 dark:text-zinc-400"
       >

@@ -104,7 +104,7 @@ export function DangerZone({ user }: { user: User }) {
       return;
     }
     logout();
-    router.replace("/login");
+    router.replace("/calendar/login");
   }
 
   return (

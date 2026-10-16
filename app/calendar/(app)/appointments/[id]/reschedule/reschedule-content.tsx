@@ -51,7 +51,7 @@ export function RescheduleContent() {
     if (payload.kind !== "reschedule") return null;
     const result = await api.rescheduleAppointment(id, payload.value);
     if (result.ok) {
-      router.replace("/appointments");
+      router.replace("/calendar/appointments");
       return null;
     }
     return result.error;

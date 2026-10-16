@@ -336,7 +336,7 @@ export function AgendaBody({
               kiosk never shows it because nobody books from a wall display. */}
           {canBookEmptyDay({ isPast, actionEnabled: showEmptyAction }) && (
             <Link
-              href="/appointments/new"
+              href="/calendar/appointments/new"
               className="mt-3 inline-block rounded bg-zinc-900 px-3 py-1 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900"
             >
               Book a room

@@ -28,7 +28,7 @@ export function VerifyEmail() {
 }
 
 /** Where a confirmed account goes next. */
-const DETAILS_PATH = "/welcome";
+const DETAILS_PATH = "/calendar/welcome";
 
 function RedeemLink({ token }: { token: string }) {
   const { adoptSession } = useSession();
@@ -74,7 +74,7 @@ function RedeemLink({ token }: { token: string }) {
           Thanks — your address is confirmed. Sign in to carry on.
         </p>
         <Link
-          href="/login"
+          href="/calendar/login"
           className="block w-full rounded bg-zinc-900 px-3 py-2 text-center text-white dark:bg-zinc-100 dark:text-zinc-900"
         >
           Sign in
@@ -91,7 +91,7 @@ function RedeemLink({ token }: { token: string }) {
           "Your address is confirmed, but we could not sign you in. Sign in with your password to continue."}
       </p>
       <p className="text-sm text-zinc-600 dark:text-zinc-300">
-        <Link href="/resend-verification" className="underline">
+        <Link href="/calendar/resend-verification" className="underline">
           Send a new link
         </Link>
       </p>
@@ -180,7 +180,7 @@ function AwaitingConfirmation() {
 
         {user && (
           <Link
-            href="/login"
+            href="/calendar/login"
             className="block text-center text-sm text-zinc-500 underline underline-offset-2 dark:text-zinc-400"
           >
             Use a different account

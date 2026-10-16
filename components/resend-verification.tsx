@@ -11,5 +11,5 @@ import { Redirect } from "@/components/redirect";
  * thing.
  */
 export function ResendVerification() {
-  return <Redirect to="/verify-email" />;
+  return <Redirect to="/calendar/verify-email" />;
 }

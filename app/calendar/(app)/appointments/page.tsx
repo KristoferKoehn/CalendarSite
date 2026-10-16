@@ -101,7 +101,7 @@ function Appointments() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className={PAGE_TITLE}>Appointments</h1>
-        <Link href="/appointments/new" className="rounded bg-zinc-900 px-3 py-1 text-white">
+        <Link href="/calendar/appointments/new" className="rounded bg-zinc-900 px-3 py-1 text-white">
           New
         </Link>
       </div>

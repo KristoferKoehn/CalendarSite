@@ -32,7 +32,7 @@ export function ResetPasswordForm() {
           This page needs the link from your email. It looks like the token is missing.
         </p>
         <p className="text-sm text-zinc-600">
-          <Link href="/forgot-password" className="underline">
+          <Link href="/calendar/forgot-password" className="underline">
             Request a new link
           </Link>
         </p>
@@ -49,7 +49,7 @@ export function ResetPasswordForm() {
           ended.
         </p>
         <Link
-          href="/login"
+          href="/calendar/login"
           className="block w-full rounded bg-zinc-900 px-3 py-2 text-center text-white"
         >
           Sign in
@@ -126,7 +126,7 @@ export function ResetPasswordForm() {
         </button>
       </form>
       <p className="text-sm text-zinc-600">
-        <Link href="/forgot-password" className="underline">
+        <Link href="/calendar/forgot-password" className="underline">
           Need a new link?
         </Link>
       </p>

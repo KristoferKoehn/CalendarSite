@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { loginInputSchema } from "@/contract";
-import { LANDING } from "@/lib/landing";
+import { CALENDAR_LANDING } from "@/lib/landing";
 import { useSession } from "@/lib/session/session-context";
 import { firstZodMessage } from "@/lib/validation";
 
@@ -17,7 +17,7 @@ export function LoginForm() {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    if (status === "authenticated") router.replace(LANDING);
+    if (status === "authenticated") router.replace(CALENDAR_LANDING);
   }, [status, router]);
 
   async function handleSubmit(event: FormEvent) {
@@ -37,7 +37,7 @@ export function LoginForm() {
       setError(result.message);
       return;
     }
-    router.replace(LANDING);
+    router.replace(CALENDAR_LANDING);
   }
 
   return (
@@ -73,12 +73,12 @@ export function LoginForm() {
       </form>
       <p className="text-sm text-zinc-600">
         No account?{" "}
-        <Link href="/register" className="underline">
+        <Link href="/calendar/register" className="underline">
           Create one
         </Link>
       </p>
       <p className="text-sm text-zinc-600">
-        <Link href="/forgot-password" className="underline">
+        <Link href="/calendar/forgot-password" className="underline">
           Forgot your password?
         </Link>
       </p>

@@ -6,7 +6,8 @@ import type { ReactNode } from "react";
 import { userLabel } from "@/contract";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UnverifiedEmailNudge } from "@/components/unverified-email-nudge";
-import { LANDING } from "@/lib/landing";
+import { CALENDAR_LANDING } from "@/lib/landing";
+import { PORTFOLIO } from "@/lib/paths";
 import { useSession } from "@/lib/session/session-context";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -15,7 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   function handleLogout() {
     logout();
-    router.replace("/login");
+    router.replace("/calendar/login");
   }
 
   return (
@@ -25,35 +26,46 @@ export function AppShell({ children }: { children: ReactNode }) {
           into horizontal scroll on every phone width — the shell, not any one page.
           Wrapping keeps the header inside the viewport, and the user block drops to its
           own line rather than fighting the links for space. */}
-      <header className="border-b border-zinc-200 px-4 py-3 sm:px-6">
+      <header className="border-b border-zinc-200 px-4 py-2.5 sm:px-6">
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          {/* The wordmark goes to the landing page, which is the kiosk: it is what signing in
-              lands on, so clicking the name should not be the one route that skips it. */}
-          <Link href={LANDING} className="font-semibold">
-            CalendarSite
-          </Link>
-          <Link href="/today" className="hover:underline">
+          {/* The wordmark and the way out of the product, stacked and tight against each other.
+              The wordmark still goes to the kiosk — it is what signing in lands on, so the name
+              should not be the one route that skips it. The link beneath is the way back up to the
+              portfolio, kept deliberately small: it is a door out of the product, not a peer of
+              the navigation beside it. */}
+          <div className="flex flex-col leading-tight">
+            <Link href={CALENDAR_LANDING} className="font-semibold">
+              CalendarSite
+            </Link>
+            <Link
+              href={PORTFOLIO}
+              className="text-[11px] text-zinc-500 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              ← back to portfolio
+            </Link>
+          </div>
+          <Link href="/calendar/today" className="hover:underline">
             Calendar
           </Link>
-          <Link href="/kiosk" className="hover:underline">
+          <Link href="/calendar/kiosk" className="hover:underline">
             Kiosk
           </Link>
-          <Link href="/appointments" className="hover:underline">
+          <Link href="/calendar/appointments" className="hover:underline">
             Appointments
           </Link>
-          <Link href="/resources" className="hover:underline">
+          <Link href="/calendar/resources" className="hover:underline">
             Resources
           </Link>
-          <Link href="/people" className="hover:underline">
+          <Link href="/calendar/people" className="hover:underline">
             People
           </Link>
           {user?.role === "admin" && (
-            <Link href="/users" className="hover:underline">
+            <Link href="/calendar/users" className="hover:underline">
               Admin
             </Link>
           )}
           <div className="ml-auto flex items-center gap-3">
-            <Link href="/settings" className="text-zinc-600 hover:underline dark:text-zinc-400">
+            <Link href="/calendar/settings" className="text-zinc-600 hover:underline dark:text-zinc-400">
               {user ? userLabel(user) : ""}
             </Link>
             <ThemeToggle />

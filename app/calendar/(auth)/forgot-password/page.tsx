@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
           Nothing after a few minutes? Check your spam folder, then try again.
         </p>
         <p className="text-sm text-zinc-600">
-          <Link href="/login" className="underline">
+          <Link href="/calendar/login" className="underline">
             Back to sign in
           </Link>
         </p>
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
         </button>
       </form>
       <p className="text-sm text-zinc-600">
-        <Link href="/login" className="underline">
+        <Link href="/calendar/login" className="underline">
           Back to sign in
         </Link>
       </p>

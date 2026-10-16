@@ -31,7 +31,7 @@ export function NewAppointmentContent() {
     if (payload.kind !== "create") return null;
     const result = await api.createAppointment(payload.value);
     if (result.ok) {
-      router.replace("/appointments");
+      router.replace("/calendar/appointments");
       return null;
     }
     return result.error;

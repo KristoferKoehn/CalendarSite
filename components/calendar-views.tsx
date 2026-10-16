@@ -15,8 +15,8 @@ import { seattleToday } from "@/lib/time";
  * button behaving the way a reader expects.
  */
 const VIEWS = [
-  { key: "day", label: "Day", href: "/today" },
-  { key: "month", label: "Month", href: "/schedule" },
+  { key: "day", label: "Day", href: "/calendar/today" },
+  { key: "month", label: "Month", href: "/calendar/schedule" },
 ] as const;
 
 function ViewTabs({ active }: { active: string }) {
@@ -77,7 +77,7 @@ export function DayView() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ViewTabs active="day" />
         <Link
-          href="/appointments"
+          href="/calendar/appointments"
           className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
         >
           All appointments →
