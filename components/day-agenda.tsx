@@ -163,10 +163,20 @@ function AgendaRow({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
+            {/* One line, always. Measuring the kiosk showed the title, not the description, was the
+                last thing making rows differ: a long title wrapped to two lines and added 28px,
+                while the description was already a uniform 40px. The badge sits beside it, so a
+                wrapped title also pushed the badge onto its own line and made the row look broken.
+
+                Truncated rather than clamped to two lines, because this row is a schedule: the
+                title needs to be identifiable at a glance and the full text is one click away in
+                the appointments list. `title` gives a hover tooltip so nothing is lost on a
+                desktop. */}
             <span
-              className={`font-medium ${
+              className={`min-w-0 max-w-full truncate font-medium ${
                 cancelled ? "text-zinc-400 line-through dark:text-zinc-500" : style.title
               }`}
+              title={appointment.title}
             >
               {appointment.title}
             </span>
