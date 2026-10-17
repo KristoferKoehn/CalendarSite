@@ -13,6 +13,7 @@ import type { TimeFormat } from "@/lib/time-format";
 import { weekDays, canBookEmptyDay, hideFinished } from "@/lib/calendar";
 import { CARD_ACCENT, CARD_SURFACE_CANCELLED, ROW_PADDING } from "@/lib/card";
 import { AGENDA_ROW_MIN_HEIGHT, descriptionClasses } from "@/lib/description-clamp";
+import { useTextOverflow } from "@/lib/use-text-overflow";
 import {
   addDays,
   describeSlot,
@@ -116,6 +117,11 @@ function AgendaRow({
   // lives in lib/description-clamp so the two cannot disagree about the height.
   const [expanded, setExpanded] = useState(false);
   const hasDescription = Boolean(appointment.description);
+  // Measured, not assumed: whether the description is clipped depends on the width it is given.
+  const { ref: descriptionRef, overflows: descriptionOverflows } = useTextOverflow(
+    appointment.description ?? "",
+    expanded,
+  );
   // On a day that is not today the phase is still used for the past/future tint, but
   // never for a live badge or a countdown.
   const phase: EventPhase = live
@@ -202,11 +208,13 @@ function AgendaRow({
               long no longer pushes every row below it down, and someone who wants the rest can ask
               for it.
 
-              The block is always present, so a booking with no description keeps the same height
-              and expanding it does nothing — rather than contracting, which is what happened when
-              the reserve was tied to being collapsed. */}
+              The control appears only when text is actually clipped. Here it shares a flex line with
+              the paragraph, so it narrows it — which cannot cause a flip-flop, because overflow is
+              monotonic in width: a box narrow enough to overflow without the control still overflows
+              with it. */}
           <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <p
+              ref={descriptionRef}
               className={`min-w-0 flex-1 text-sm text-zinc-600 dark:text-zinc-400 ${descriptionClasses(
                 expanded,
                 hasDescription,
@@ -214,7 +222,7 @@ function AgendaRow({
             >
               {appointment.description ?? ""}
             </p>
-            {hasDescription && (
+            {descriptionOverflows && (
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}

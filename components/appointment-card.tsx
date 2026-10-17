@@ -8,6 +8,7 @@ import { CARD_ACCENT, CARD_SURFACE, CARD_SURFACE_MUTED, ROW_PADDING } from "@/li
 import { canDeleteAppointment, canModifyAppointment } from "@/lib/permissions";
 import { cal } from "@/lib/paths";
 import { APPOINTMENT_CARD_MIN_HEIGHT, descriptionClasses } from "@/lib/description-clamp";
+import { useTextOverflow } from "@/lib/use-text-overflow";
 import { useTimeFormat } from "@/lib/time-format";
 import { formatClock, formatDuration, formatSeattleRange } from "@/lib/time";
 import type { User } from "@/contract";
@@ -57,6 +58,12 @@ export function AppointmentCard({
   // should happen when a filter changes the list underneath it.
   const [expanded, setExpanded] = useState(false);
   const hasDescription = Boolean(appointment.description);
+  // Show the control only when there is something behind it. Most descriptions here are one short
+  // line, so without this most of the controls did nothing when clicked.
+  const { ref: descriptionRef, overflows: descriptionOverflows } = useTextOverflow(
+    appointment.description ?? "",
+    expanded,
+  );
 
   return (
     <li className={`flex gap-3 ${ROW_PADDING} sm:gap-4`}>
@@ -94,11 +101,10 @@ export function AppointmentCard({
             {appointment.title}
           </div>
 
-          {/* The description block is rendered whether or not there is a description, and it holds
-              its height when collapsed. Skipping it for a card without one would make that card
-              short — the same raggedness, one line smaller. An empty reserved block looks the same
-              as a one-line description that has been given room to grow into. */}
+          {/* Rendered whether or not there is a description, because the card reserves its own
+              height and this block must not add a gap of its own — see description-clamp. */}
           <p
+            ref={descriptionRef}
             className={`mt-0.5 text-sm text-zinc-600 dark:text-zinc-400 ${
               descriptionClasses(expanded, hasDescription)
             }`}
@@ -129,10 +135,10 @@ export function AppointmentCard({
 
           <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-zinc-400 dark:text-zinc-500">
             <span>{formatSeattleRange(appointment.startAtLocal, appointment.endAtLocal, timeFormat)}</span>
-            {/* Shown only when there is a description to reveal, because a control that expands
-                nothing is a dead end. `aria-expanded` is what tells a screen reader this is a
-                disclosure rather than a link, and the label says which way it goes. */}
-            {hasDescription && (
+            {/* Only when there is something hidden behind it. `aria-expanded` is what tells a
+                screen reader this is a disclosure rather than a link, and the label says which
+                way it goes. */}
+            {descriptionOverflows && (
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
