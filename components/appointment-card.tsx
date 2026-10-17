@@ -7,6 +7,7 @@ import { appointmentOwnerLabel } from "@/contract";
 import { CARD_ACCENT, CARD_SURFACE, CARD_SURFACE_MUTED, ROW_PADDING } from "@/lib/card";
 import { canDeleteAppointment, canModifyAppointment } from "@/lib/permissions";
 import { cal } from "@/lib/paths";
+import { descriptionClasses } from "@/lib/description-clamp";
 import { useTimeFormat } from "@/lib/time-format";
 import { formatClock, formatDuration, formatSeattleRange } from "@/lib/time";
 import type { User } from "@/contract";
@@ -24,28 +25,6 @@ type Props = {
   onKeep?: () => void;
 };
 
-/**
- * How many lines of description a collapsed card shows.
- *
- * Two is what makes the rows uniform: the rest of a card is a fixed height — one line of title, one
- * of where/who/how long, one of date — so the only thing that varies between two appointments is
- * how many lines their description wraps to. Pinning that to two means every collapsed card is the
-/**
- * How tall the description area is when collapsed.
- *
- * A fixed height, not a maximum. `line-clamp-2` stops a description running past two lines, but it
- * leaves a one-line description at one line — and that was the whole of the remaining difference:
- * measuring every card on the list, 314 were 112px and 4 were 132px, and the only thing that
- * distinguished them was a description that wrapped to two lines instead of one. Clamping alone
- * cannot make those equal; reserving the space can.
- *
- * Two lines of `text-sm` is 2.5rem at the default leading. Measured rather than assumed: the tall
- * group's description was exactly 40px, and the other was 20px.
- *
- * The reserve applies only when collapsed. Expanded, the description takes whatever it needs.
- */
-const COLLAPSED_DESCRIPTION =
-  "line-clamp-2 min-h-[2.5rem]";
 
 /**
  * One appointment, as a card.
@@ -121,7 +100,7 @@ export function AppointmentCard({
               as a one-line description that has been given room to grow into. */}
           <p
             className={`mt-0.5 text-sm text-zinc-600 dark:text-zinc-400 ${
-              expanded ? "" : COLLAPSED_DESCRIPTION
+              descriptionClasses(expanded, hasDescription)
             }`}
           >
             {appointment.description ?? ""}

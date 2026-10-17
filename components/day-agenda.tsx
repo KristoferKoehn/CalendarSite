@@ -12,6 +12,7 @@ import { useTimeFormat } from "@/lib/time-format";
 import type { TimeFormat } from "@/lib/time-format";
 import { weekDays, canBookEmptyDay, hideFinished } from "@/lib/calendar";
 import { CARD_ACCENT, CARD_SURFACE_CANCELLED, ROW_PADDING } from "@/lib/card";
+import { descriptionClasses } from "@/lib/description-clamp";
 import {
   addDays,
   describeSlot,
@@ -111,6 +112,10 @@ function AgendaRow({
 }) {
   const cancelled = appointment.status === "cancelled";
   const actual = describeSlot(appointment, now);
+  // The description collapses and expands the same way it does in the appointments list; the rule
+  // lives in lib/description-clamp so the two cannot disagree about the height.
+  const [expanded, setExpanded] = useState(false);
+  const hasDescription = Boolean(appointment.description);
   // On a day that is not today the phase is still used for the past/future tint, but
   // never for a live badge or a countdown.
   const phase: EventPhase = live
@@ -182,11 +187,34 @@ function AgendaRow({
             <span className="tabular-nums">{formatDuration(actual.durationMinutes)}</span>
           </div>
 
-          {appointment.description && (
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              {appointment.description}
+          {/* Same behaviour as the appointments list, through the same rule. The kiosk and the day
+              view both render this row, so the wall display gets it too: a description that runs
+              long no longer pushes every row below it down, and someone who wants the rest can ask
+              for it.
+
+              The block is always present, so a booking with no description keeps the same height
+              and expanding it does nothing — rather than contracting, which is what happened when
+              the reserve was tied to being collapsed. */}
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p
+              className={`min-w-0 flex-1 text-sm text-zinc-600 dark:text-zinc-400 ${descriptionClasses(
+                expanded,
+                hasDescription,
+              )}`}
+            >
+              {appointment.description ?? ""}
             </p>
-          )}
+            {hasDescription && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+                className="text-xs text-zinc-400 underline underline-offset-2 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+              >
+                {expanded ? "Show less" : "Show more"}
+              </button>
+            )}
+          </div>
         </div>
 
         {note && <span className={`self-center text-xs tabular-nums ${style.time}`}>{note}</span>}
