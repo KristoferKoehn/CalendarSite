@@ -162,31 +162,31 @@ function AgendaRow({
         />
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* One line, always. Measuring the kiosk showed the title, not the description, was the
-                last thing making rows differ: a long title wrapped to two lines and added 28px,
-                while the description was already a uniform 40px. The badge sits beside it, so a
-                wrapped title also pushed the badge onto its own line and made the row look broken.
+          {/* One line, always — `nowrap` rather than `wrap`, with the badge told not to shrink.
 
-                Truncated rather than clamped to two lines, because this row is a schedule: the
-                title needs to be identifiable at a glance and the full text is one click away in
-                the appointments list. `title` gives a hover tooltip so nothing is lost on a
-                desktop. */}
+              `truncate` on the title alone was not enough. When a long title and the badge together
+              exceeded the width, the *row* wrapped and sent the badge to a second line: the title
+              measured a correct one line while the row grew 28px, which is what made one card taller
+              than the rest. Keeping the row on one line makes the title do the shrinking, which is
+              what truncation is for. */}
+          <div className="flex flex-nowrap items-center gap-2">
             <span
-              className={`min-w-0 max-w-full truncate font-medium ${
+              className={`min-w-0 truncate font-medium ${
                 cancelled ? "text-zinc-400 line-through dark:text-zinc-500" : style.title
               }`}
               title={appointment.title}
             >
               {appointment.title}
             </span>
-            {cancelled ? (
-              <span className="rounded-full border border-zinc-300 px-2 py-0.5 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                Cancelled
-              </span>
-            ) : (
-              <StatusBadge phase={phase} minutesUntilStart={actual.minutesUntilStart} />
-            )}
+            <span className="shrink-0">
+              {cancelled ? (
+                <span className="rounded-full border border-zinc-300 px-2 py-0.5 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                  Cancelled
+                </span>
+              ) : (
+                <StatusBadge phase={phase} minutesUntilStart={actual.minutesUntilStart} />
+              )}
+            </span>
           </div>
 
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-zinc-500 dark:text-zinc-400">
