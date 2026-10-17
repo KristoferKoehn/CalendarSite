@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import type { Appointment } from "@/contract";
 import { appointmentOwnerLabel } from "@/contract";
 import { CARD_ACCENT, CARD_SURFACE, CARD_SURFACE_MUTED, ROW_PADDING } from "@/lib/card";
@@ -22,6 +23,20 @@ type Props = {
   onConfirmDelete?: () => void;
   onKeep?: () => void;
 };
+
+/**
+ * How many lines of description a collapsed card shows.
+ *
+ * Two is what makes the rows uniform: the rest of a card is a fixed height — one line of title, one
+ * of where/who/how long, one of date — so the only thing that varies between two appointments is
+ * how many lines their description wraps to. Pinning that to two means every collapsed card is the
+ * same height, which is what makes a long list scannable.
+ *
+ * Kept as a class rather than a computed height because `line-clamp` is exactly the tool for it:
+ * it truncates at a line boundary and adds the ellipsis, where a `max-height` would cut a line in
+ * half.
+ */
+const COLLAPSED_DESCRIPTION_LINES = "line-clamp-2";
 
 /**
  * One appointment, as a card.
@@ -50,6 +65,10 @@ export function AppointmentCard({
   const showActions = Boolean(onCancel || onAskDelete);
   // Null before hydration; 24-hour is what the prerendered markup already shows.
   const timeFormat = useTimeFormat() ?? "24h";
+  // Per card, so expanding one does not move every other row. Resets on unmount, which is what
+  // should happen when a filter changes the list underneath it.
+  const [expanded, setExpanded] = useState(false);
+  const hasDescription = Boolean(appointment.description);
 
   return (
     <li className={`flex gap-3 ${ROW_PADDING} sm:gap-4`}>
@@ -87,8 +106,12 @@ export function AppointmentCard({
             {appointment.title}
           </div>
 
-          {appointment.description && (
-            <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
+          {hasDescription && (
+            <p
+              className={`mt-0.5 text-sm text-zinc-600 dark:text-zinc-400 ${
+                expanded ? "" : COLLAPSED_DESCRIPTION_LINES
+              }`}
+            >
               {appointment.description}
             </p>
           )}
@@ -114,8 +137,21 @@ export function AppointmentCard({
             </span>
           </div>
 
-          <div className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
-            {formatSeattleRange(appointment.startAtLocal, appointment.endAtLocal, timeFormat)}
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-zinc-400 dark:text-zinc-500">
+            <span>{formatSeattleRange(appointment.startAtLocal, appointment.endAtLocal, timeFormat)}</span>
+            {/* Shown only when there is a description to reveal, because a control that expands
+                nothing is a dead end. `aria-expanded` is what tells a screen reader this is a
+                disclosure rather than a link, and the label says which way it goes. */}
+            {hasDescription && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+                className="rounded underline underline-offset-2 hover:text-zinc-700 dark:hover:text-zinc-300"
+              >
+                {expanded ? "Show less" : "Show more"}
+              </button>
+            )}
           </div>
 
           {cancelled && (
