@@ -1,71 +1,87 @@
 import { describe, expect, it } from "vitest";
 import {
+  AGENDA_ROW_MIN_HEIGHT,
+  APPOINTMENT_CARD_MIN_HEIGHT,
   CLAMPED_DESCRIPTION,
-  CLAMPED_DESCRIPTION_HEIGHT,
-  RESERVED_DESCRIPTION,
   descriptionClasses,
 } from "@/lib/description-clamp";
 
 /**
- * The description block's height rules, shared by the appointments list and the day/kiosk agenda.
+ * The description block's rules, shared by the appointments list and the day/kiosk agenda.
  *
- * The height is what makes a list of rows uniform, and each of the three rules below exists because
- * the version before it was visibly wrong on the live site.
+ * Each rule exists because the version before it was visibly wrong on the deployed site:
+ *
+ * 1. Clamping alone left rows ragged (one-line vs two-line descriptions).
+ * 2. Reserving two lines *inside* the text block made rows uniform but put a blank line between the
+ *    description and the line below it — it read as a missing line, not as padding.
+ *
+ * So the height belongs to the card and the clamp belongs to the text.
  */
 
 describe("descriptionClasses", () => {
-  it("clamps and reserves the height when collapsed", () => {
-    const classes = descriptionClasses(false, true);
-    expect(classes).toBe(CLAMPED_DESCRIPTION);
-    expect(classes).toContain("line-clamp-2");
-    expect(classes).toContain(CLAMPED_DESCRIPTION_HEIGHT);
+  it("clamps when collapsed so long text truncates at a line boundary", () => {
+    expect(descriptionClasses(false, true)).toBe(CLAMPED_DESCRIPTION);
+    expect(CLAMPED_DESCRIPTION).toContain("line-clamp-2");
   });
 
-  it("releases both when expanded with text to show", () => {
+  it("releases the clamp when expanded", () => {
     expect(descriptionClasses(true, true)).toBe("");
   });
 
-  it("keeps the reserved height when there is no text", () => {
-    // The shrink bug: with the block always rendered, expanding a row without a description
-    // dropped the min-height and the row contracted. Nothing to reveal means nothing changes.
-    expect(descriptionClasses(true, false)).toBe(RESERVED_DESCRIPTION);
-    expect(descriptionClasses(false, false)).toBe(RESERVED_DESCRIPTION);
-  });
-
-  it("gives a row with no text the same reserved height as a collapsed one", () => {
-    // The property is the height, not the classes: an empty row needs the reserve but has nothing
-    // to clamp, so it carries `min-h` alone. Asserting the strings were equal was testing the
-    // wrong thing.
-    const withText = descriptionClasses(false, true);
-    const withoutText = descriptionClasses(false, false);
-    expect(withText).toContain(CLAMPED_DESCRIPTION_HEIGHT);
-    expect(withoutText).toContain(CLAMPED_DESCRIPTION_HEIGHT);
-  });
-
-  it("never shrinks when going from collapsed to expanded", () => {
-    // Stated as the property rather than the strings: expanded must reserve at least as much as
-    // collapsed, for both cases. This is the invariant a future edit is most likely to break.
-    for (const hasText of [true, false]) {
-      const collapsed = descriptionClasses(false, hasText);
-      const expanded = descriptionClasses(true, hasText);
-      const reservesHeight = (c: string) => c.includes(CLAMPED_DESCRIPTION_HEIGHT);
-      // Expanded either keeps the reserve or takes its own height from the text, which is only
-      // safe when there is text. It may never drop the reserve with nothing to fill it.
-      if (!hasText) expect(reservesHeight(expanded)).toBe(true);
-      expect(reservesHeight(collapsed)).toBe(true);
+  it("carries no height of its own", () => {
+    // The whole point of moving the reserve to the card. A `min-h` here would put the blank line
+    // back between the description and the line below it.
+    for (const [expanded, hasText] of [
+      [false, true],
+      [true, true],
+      [false, false],
+      [true, false],
+    ] as const) {
+      const classes = descriptionClasses(expanded, hasText);
+      expect(classes).not.toContain("min-h");
+      expect(classes).not.toContain("h-[");
+      expect(classes).not.toContain("max-h");
     }
+  });
+
+  it("adds nothing for a row with no description", () => {
+    expect(descriptionClasses(false, false)).toBe("");
+    expect(descriptionClasses(true, false)).toBe("");
+  });
+
+  it("uses a clamp rather than a height, so truncation is at a line boundary", () => {
+    expect(CLAMPED_DESCRIPTION).not.toContain("max-h-");
+    expect(CLAMPED_DESCRIPTION).not.toContain("overflow-hidden");
   });
 });
 
-describe("the constants", () => {
-  it("use a line clamp rather than a max-height", () => {
-    // A max-height would cut a line in half; line-clamp truncates at a boundary.
-    expect(CLAMPED_DESCRIPTION).toContain("line-clamp-2");
-    expect(CLAMPED_DESCRIPTION).not.toContain("max-h-");
+describe("the card heights", () => {
+  it("are expressed in rem, not pixels", () => {
+    // So the reserve follows the reader's font size rather than pinning a pixel value.
+    for (const h of [APPOINTMENT_CARD_MIN_HEIGHT, AGENDA_ROW_MIN_HEIGHT]) {
+      expect(h).toMatch(/^min-h-\[[\d.]+rem\]$/);
+    }
   });
 
-  it("reserve two lines of text-sm", () => {
-    // 2.5rem, measured from the tall rows on the live list rather than assumed.
-    expect(CLAMPED_DESCRIPTION_HEIGHT).toBe("min-h-[2.5rem]");
+  it("are a minimum, never a fixed height", () => {
+    // A fixed height would clip an expanded row instead of letting it grow.
+    for (const h of [APPOINTMENT_CARD_MIN_HEIGHT, AGENDA_ROW_MIN_HEIGHT]) {
+      expect(h).toContain("min-h-");
+      expect(h).not.toMatch(/^h-/);
+    }
+  });
+
+  it("are different for the two layouts, which are different shapes", () => {
+    // The appointments card carries a date line the agenda row does not, and puts its actions
+    // beside the content rather than a note. One shared value would be wrong for one of them.
+    expect(APPOINTMENT_CARD_MIN_HEIGHT).not.toBe(AGENDA_ROW_MIN_HEIGHT);
+  });
+
+  it("are tall enough for a two-line description", () => {
+    // Two lines of text-sm (2.5rem) plus the card's own padding and the rest of its content. Both
+    // values were read off a card whose description fills two lines, so neither may be shorter.
+    const rem = (c: string) => parseFloat(c.replace(/[^\d.]/g, ""));
+    expect(rem(APPOINTMENT_CARD_MIN_HEIGHT)).toBeGreaterThanOrEqual(8);
+    expect(rem(AGENDA_ROW_MIN_HEIGHT)).toBeGreaterThanOrEqual(6.5);
   });
 });

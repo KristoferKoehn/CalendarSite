@@ -12,7 +12,7 @@ import { useTimeFormat } from "@/lib/time-format";
 import type { TimeFormat } from "@/lib/time-format";
 import { weekDays, canBookEmptyDay, hideFinished } from "@/lib/calendar";
 import { CARD_ACCENT, CARD_SURFACE_CANCELLED, ROW_PADDING } from "@/lib/card";
-import { descriptionClasses } from "@/lib/description-clamp";
+import { AGENDA_ROW_MIN_HEIGHT, descriptionClasses } from "@/lib/description-clamp";
 import {
   addDays,
   describeSlot,
@@ -150,7 +150,7 @@ function AgendaRow({
       </div>
 
       <div
-        className={`relative flex flex-1 flex-wrap items-start gap-x-3 gap-y-1 overflow-hidden py-2.5 pl-4 pr-3 ${
+        className={`relative flex flex-1 flex-wrap items-start gap-x-3 gap-y-1 overflow-hidden py-2.5 pl-4 pr-3 ${AGENDA_ROW_MIN_HEIGHT} ${
           cancelled ? CARD_SURFACE_CANCELLED : style.card
         }`}
       >

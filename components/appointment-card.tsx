@@ -7,7 +7,7 @@ import { appointmentOwnerLabel } from "@/contract";
 import { CARD_ACCENT, CARD_SURFACE, CARD_SURFACE_MUTED, ROW_PADDING } from "@/lib/card";
 import { canDeleteAppointment, canModifyAppointment } from "@/lib/permissions";
 import { cal } from "@/lib/paths";
-import { descriptionClasses } from "@/lib/description-clamp";
+import { APPOINTMENT_CARD_MIN_HEIGHT, descriptionClasses } from "@/lib/description-clamp";
 import { useTimeFormat } from "@/lib/time-format";
 import { formatClock, formatDuration, formatSeattleRange } from "@/lib/time";
 import type { User } from "@/contract";
@@ -70,7 +70,7 @@ export function AppointmentCard({
       </div>
 
       <div
-        className={`relative flex flex-1 flex-wrap items-start gap-x-3 gap-y-2 overflow-hidden py-2.5 pl-4 pr-3 ${
+        className={`relative flex flex-1 flex-wrap items-start gap-x-3 gap-y-2 overflow-hidden py-2.5 pl-4 pr-3 ${APPOINTMENT_CARD_MIN_HEIGHT} ${
           cancelled ? CARD_SURFACE_MUTED : CARD_SURFACE
         }`}
       >

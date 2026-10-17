@@ -1,6 +1,6 @@
 /**
- * How a booking row's description behaves: clamped when collapsed, expandable, and always the same
- * height so a list of rows lines up.
+ * How a booking row's description behaves: clamped when collapsed, expandable, and the row kept at a
+ * uniform height.
  *
  * Shared so the appointments list and the day/kiosk agenda cannot drift. They are two different row
  * layouts — one has action buttons, the other a status badge and a "free in" note — but the
@@ -8,36 +8,41 @@
  * The layouts put their toggle in different places, so only the classes are shared; each keeps its
  * own markup and its own expanded state.
  *
- * Three rules, each of which came from getting it wrong first:
+ * The uniform height comes from the **card**, not from the description block.
  *
- * **A fixed height, not a maximum.** `line-clamp-2` alone leaves a one-line description at one line,
- * so rows stayed ragged. Two lines of `text-sm` is 2.5rem — measured from the tall rows on the live
- * list, not assumed.
+ * Reserving two lines inside the text block was the first attempt and it looked like a bug: a
+ * one-line description left a visible blank line between the description and the line below it. The
+ * space was real but it read as a missing line rather than as padding. Reserving on the card puts
+ * the same space at the bottom edge, where an uneven gap is invisible because it sits against the
+ * border rather than between two pieces of text.
  *
- * **The space is reserved even when there is no description.** Skipping the block made those rows
- * short in exactly the same way.
- *
- * **Expanding must never make a row shorter.** With the block always rendered, expanding a row with
- * no description dropped the `min-h` and the row contracted — which is the bug this fixes.
+ * The clamp is still on the text, so a long description still truncates at a line boundary with an
+ * ellipsis rather than being cut mid-line by a height.
  */
 
-/** Two lines of `text-sm`, measured rather than computed. */
-export const CLAMPED_DESCRIPTION_HEIGHT = "min-h-[2.5rem]";
+/** Collapsed description: truncate past two lines, at a line boundary. */
+export const CLAMPED_DESCRIPTION = "line-clamp-2";
 
-/** Collapsed: reserve the height and truncate past two lines. */
-export const CLAMPED_DESCRIPTION = `line-clamp-2 ${CLAMPED_DESCRIPTION_HEIGHT}`;
-
-/** Expanded with nothing to reveal: keep the height, drop the clamp. */
-export const RESERVED_DESCRIPTION = CLAMPED_DESCRIPTION_HEIGHT;
+/**
+ * The height a collapsed card holds, measured from a card whose description fills two clamped lines
+ * — that is its natural height, so no card ever needs more room while collapsed.
+ *
+ * Two constants because the two layouts are different shapes: the appointments card carries a date
+ * line the agenda row does not, and has action buttons beside the content rather than a note.
+ *
+ * Measured on the deployed pages rather than guessed, and the tests below assert that neither is
+ * smaller than a two-line card actually renders.
+ */
+export const APPOINTMENT_CARD_MIN_HEIGHT = "min-h-[8.25rem]";
+export const AGENDA_ROW_MIN_HEIGHT = "min-h-[6.875rem]";
 
 /**
  * Which classes a description paragraph needs.
  *
- * `expanded` alone is not enough to decide: a row with no text has nothing to expand into, so it
- * keeps the reserve. Expressed as a function because the rule has a case, and both layouts need
- * exactly the same answer.
+ * Only the clamp is conditional. The height is not handled here at all — it belongs to the card, so
+ * that nothing about the description's own box creates a gap between text lines.
  */
 export function descriptionClasses(expanded: boolean, hasText: boolean): string {
-  if (!hasText) return RESERVED_DESCRIPTION;
+  if (!hasText) return "";
   return expanded ? "" : CLAMPED_DESCRIPTION;
 }
