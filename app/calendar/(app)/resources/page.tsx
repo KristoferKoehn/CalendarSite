@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { CreateResourceInput, Resource } from "@/contract";
 import { getApiClient, type ApiError } from "@/lib/api";
 import { sortResources } from "@/lib/resources";
+import { cal } from "@/lib/paths";
 import { CARD_LIST, PAGE_TITLE, ROW_PADDING } from "@/lib/card";
 import { useSession } from "@/lib/session/session-context";
 import { ErrorBanner } from "@/components/error-banner";
@@ -158,7 +159,7 @@ export default function ResourcesPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
-                        href={`/appointments/new?resourceId=${resource.id}`}
+                        href={cal(`/appointments/new?resourceId=${resource.id}`)}
                         className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
                       >
                         Book

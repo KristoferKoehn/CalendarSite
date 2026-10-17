@@ -5,6 +5,7 @@ import type { Appointment } from "@/contract";
 import { appointmentOwnerLabel } from "@/contract";
 import { CARD_ACCENT, CARD_SURFACE, CARD_SURFACE_MUTED, ROW_PADDING } from "@/lib/card";
 import { canDeleteAppointment, canModifyAppointment } from "@/lib/permissions";
+import { cal } from "@/lib/paths";
 import { useTimeFormat } from "@/lib/time-format";
 import { formatClock, formatDuration, formatSeattleRange } from "@/lib/time";
 import type { User } from "@/contract";
@@ -151,7 +152,7 @@ export function AppointmentCard({
               {!cancelled && canModify && (
                 <>
                   <Link
-                    href={`/appointments/${appointment.id}/reschedule`}
+                    href={cal(`/appointments/${appointment.id}/reschedule`)}
                     className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
                   >
                     Reschedule

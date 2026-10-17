@@ -7,6 +7,7 @@ import { DayAgenda } from "@/components/day-agenda";
 import { MonthBody } from "@/components/schedule-month";
 import { useNow } from "@/lib/use-now";
 import { normaliseAnchor, normaliseDate } from "@/lib/calendar";
+import { cal } from "@/lib/paths";
 import { seattleToday } from "@/lib/time";
 
 /**
@@ -132,7 +133,7 @@ export function MonthView() {
         }}
         // Clicking a day zooms to it: the month is for finding a day, the day view is for
         // reading one. This is the whole reason the two live under one tab.
-        onSelectDate={(date) => router.push(`/today?d=${date}`)}
+        onSelectDate={(date) => router.push(cal(`/today?d=${date}`))}
       />
     </div>
   );
