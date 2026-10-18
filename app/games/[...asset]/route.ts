@@ -1,7 +1,8 @@
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
+import { SERVICE_WORKER_SHIM, injectShell, isServiceWorker } from "@/lib/game-shell";
 
 /**
  * Serves exported games from disk, at request time.
@@ -105,7 +106,49 @@ export async function GET(
   }
 
   const extension = path.extname(resolved.file).toLowerCase();
+  const base = path.basename(resolved.file);
+
+  /**
+   * The export's own service worker is replaced, not served.
+   *
+   * It precaches the entry document, the engine and the game data, and answers navigations from that
+   * cache. On a page that is replaced by an upload that is a trap: a visitor who loaded a game while
+   * it was half-installed keeps that copy for good, with nothing to say why one machine works and
+   * another does not. It also hides a replaced game from anyone who has already visited it. Offline
+   * support buys nothing for a game served from this server, so the registration is accepted and then
+   * undone — see lib/game-shell.ts.
+   */
+  if (isServiceWorker(base)) {
+    return new Response(SERVICE_WORKER_SHIM, {
+      headers: {
+        "Content-Type": "text/javascript; charset=utf-8",
+        // Never cached: the whole point is to reach the visitors who have an old one.
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Resource-Policy": "same-origin",
+      },
+    });
+  }
+
   const type = TYPES[extension] ?? "application/octet-stream";
+
+  // The entry document is read and adjusted rather than streamed: it is a few kilobytes, and it is the
+  // one file whose job is presentation.
+  if (extension === ".html") {
+    const html = await readFile(resolved.file, "utf8");
+    return new Response(injectShell(html), {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        // Never cached: replacing a game must take effect on the next visit.
+        "Cache-Control": "no-cache",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Resource-Policy": "same-origin",
+      },
+    });
+  }
+
   const size = (await stat(resolved.file)).size;
 
   // Streamed rather than read into memory: an export's engine is tens of megabytes, and buffering it
