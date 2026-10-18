@@ -10,6 +10,9 @@ import type {
   LoginInput,
   LoginOutput,
   ProfileUpdateInput,
+  Project,
+  ProjectCreateInput,
+  ProjectUpdateInput,
   RegisterInput,
   RegisterOutput,
   ResendVerificationInput,
@@ -71,6 +74,12 @@ export interface ApiClient {
   getUser(id: string): Promise<Result<User, ApiError>>;
   updateUser(id: string, input: UpdateUserInput): Promise<Result<User, ApiError>>;
   deleteUser(id: string): Promise<Result<User, ApiError>>;
+
+  /** The portfolio. Reading needs no session; the writes are refused unless the caller is an admin. */
+  listProjects(): Promise<Result<Project[], ApiError>>;
+  createProject(input: ProjectCreateInput): Promise<Result<Project, ApiError>>;
+  updateProject(slug: string, input: ProjectUpdateInput): Promise<Result<Project, ApiError>>;
+  deleteProject(slug: string): Promise<Result<Project, ApiError>>;
 
   createAppointment(input: AppointmentCreateInput): Promise<Result<Appointment, ApiError>>;
   listAppointments(query?: AppointmentListQuery): Promise<Result<Appointment[], ApiError>>;

@@ -4,3 +4,4 @@ export * from "./schemas/auth";
 export * from "./schemas/users";
 export * from "./schemas/resources";
 export * from "./schemas/appointments";
+export * from "./schemas/projects";

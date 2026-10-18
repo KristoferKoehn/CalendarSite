@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { PROJECT_STATUS_LABEL } from "@/contract";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { PROJECTS, STATUS_LABEL } from "@/lib/projects";
+import { readProjects } from "@/lib/projects";
 
 export const metadata: Metadata = {
   title: "Kristofer Koehn — projects",
@@ -11,13 +14,15 @@ export const metadata: Metadata = {
 /**
  * The landing page.
  *
- * An index rather than a gallery: names on rules, type doing the work and no boxes. It is the
- * layout that ages best and the one that still reads as deliberate with one project or with ten —
- * which matters, because there is one project today.
+ * An index rather than a gallery: names on rules, type doing the work and no boxes. It is the layout
+ * that ages best and the one that still reads as deliberate with one project or with ten.
  *
- * Nothing here is a client component. The only interactive element is the theme toggle, which
- * carries its own state, so the whole page renders on the server and the project list is in the
- * HTML for anything that does not run JavaScript.
+ * The frame — header, opening lines, footer — is prerendered. Only the list is dynamic, because it
+ * is read from disk so that a project added through the admin form appears without a rebuild.
+ *
+ * The Suspense boundary is not decoration: this app runs with `cacheComponents`, which refuses to
+ * prerender a page that reads runtime data, and the build fails rather than degrading. Streaming the
+ * list is how the frame stays static while the cards do not.
  */
 export default function PortfolioPage() {
   return (
@@ -49,48 +54,9 @@ export default function PortfolioPage() {
             <span>Selected projects</span>
             <span>2026</span>
           </div>
-
-          {PROJECTS.length === 0 ? (
-            <p className="mt-8 text-zinc-500 dark:text-zinc-400">Nothing published yet.</p>
-          ) : (
-            <ul>
-              {PROJECTS.map((project) => (
-                <li
-                  key={project.name}
-                  className="border-b border-zinc-200 py-9 dark:border-zinc-800"
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-                    {/* The name is the link, and it is the only link. A second "read more" would
-                        be a second target for the same destination. */}
-                    <h2 className="text-lg font-medium">
-                      {project.href ? (
-                        <Link
-                          href={project.href}
-                          className="underline-offset-4 hover:underline focus-visible:underline"
-                        >
-                          {project.name}
-                        </Link>
-                      ) : (
-                        project.name
-                      )}
-                    </h2>
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
-                      {STATUS_LABEL[project.status]}
-                    </span>
-                  </div>
-
-                  <p className="mt-3 max-w-xl pl-0 text-zinc-600 dark:text-zinc-400 sm:pl-8">
-                    {project.description}
-                  </p>
-
-                  <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400 sm:pl-8">
-                    <span>{project.stack.join(" · ")}</span>
-                    <span>{project.when}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <Suspense fallback={<ProjectListFallback />}>
+            <ProjectList />
+          </Suspense>
         </section>
       </main>
 
@@ -101,5 +67,59 @@ export default function PortfolioPage() {
         </a>
       </footer>
     </div>
+  );
+}
+
+/** Says the list is coming, without claiming it is empty — those are different facts. */
+function ProjectListFallback() {
+  return <p className="mt-8 text-sm text-zinc-500 dark:text-zinc-400">Loading projects…</p>;
+}
+
+/**
+ * The cards.
+ *
+ * `connection()` is what marks this component as depending on a live request, which is what the
+ * filesystem read actually is. Without it Next would try to evaluate the read while prerendering and
+ * fail the build.
+ */
+async function ProjectList() {
+  await connection();
+  const projects = await readProjects();
+
+  if (projects.length === 0) {
+    return <p className="mt-8 text-zinc-500 dark:text-zinc-400">Nothing published yet.</p>;
+  }
+
+  return (
+    <ul>
+      {projects.map((project) => (
+        <li key={project.slug} className="border-b border-zinc-200 py-9 dark:border-zinc-800">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+            {/* The name is the link, and it is the only link. A second "read more" would be a
+                second target for the same destination. */}
+            <h2 className="text-lg font-medium">
+              <Link
+                href={project.href}
+                className="underline-offset-4 hover:underline focus-visible:underline"
+              >
+                {project.name}
+              </Link>
+            </h2>
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">
+              {PROJECT_STATUS_LABEL[project.status]}
+            </span>
+          </div>
+
+          <p className="mt-3 max-w-xl text-zinc-600 dark:text-zinc-400 sm:pl-8">
+            {project.description}
+          </p>
+
+          <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400 sm:pl-8">
+            <span>{project.stack.join(" · ")}</span>
+            <span>{project.when}</span>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

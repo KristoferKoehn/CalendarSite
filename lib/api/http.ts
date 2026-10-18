@@ -5,6 +5,8 @@ import {
   appointmentSchema,
   errorEnvelopeSchema,
   loginOutputSchema,
+  projectListSchema,
+  projectResponseSchema,
   registerOutputSchema,
   resetPasswordOutputSchema,
   resourceListOutputSchema,
@@ -31,6 +33,9 @@ import {
   type ResetPasswordOutput,
   type VerifyEmailInput,
   type VerifyEmailOutput,
+  type Project,
+  type ProjectCreateInput,
+  type ProjectUpdateInput,
   type Resource,
   type UpdateResourceInput,
   type UpdateUserInput,
@@ -43,7 +48,7 @@ import { err, ok, type Result } from "./result";
 import type { TokenStore } from "./session";
 
 type RequestOptions<T> = {
-  method: "GET" | "POST" | "PATCH" | "DELETE";
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
   query?: Record<string, string | undefined>;
   body?: unknown;
@@ -55,6 +60,15 @@ type RequestOptions<T> = {
    * "Response was not valid JSON" for a request that actually succeeded.
    */
   noContent?: boolean;
+  /**
+   * Overrides the default deadline for this request.
+   *
+   * The default is sized for JSON round trips. An upload is not one: a game build is tens of
+   * megabytes, and the time it takes is a property of the connection rather than of the server. Left
+   * at the default, a large upload would be abandoned mid-flight and reported as a timeout, which
+   * looks like a server fault and is not one.
+   */
+  timeoutMs?: number;
 };
 
 /**
@@ -383,6 +397,71 @@ export class HttpApiClient implements ApiClient {
     });
   }
 
+  // The portfolio. Reading is public, so a signed-out visitor could fetch it too, though the
+  // landing page reads the files directly rather than going through the API.
+  async listProjects(): Promise<Result<Project[], ApiError>> {
+    const result = await this.request({
+      method: "GET",
+      path: "/projects",
+      schema: projectListSchema,
+    });
+    return result.ok ? ok(result.value.projects) : result;
+  }
+
+  /**
+   * Create a project, optionally with a game build attached.
+   *
+   * Multipart rather than JSON because the build is a zip: base64 inside JSON would inflate it by a
+   * third and make the whole thing one string the server has to hold in memory.
+   */
+  async createProject(input: ProjectCreateInput): Promise<Result<Project, ApiError>> {
+    const form = new FormData();
+    form.set("name", input.name);
+    if (input.slug) form.set("slug", input.slug);
+    form.set("description", input.description);
+    form.set("status", input.status);
+    form.set("stack", input.stack.join(", "));
+    form.set("when", input.when);
+    if (input.href) form.set("href", input.href);
+    // Left off entirely when there is no file, so the backend sees "no upload" rather than an empty
+    // one — an empty file input still submits a nameless part in some browsers.
+    if (input.game) form.set("game", input.game);
+
+    const result = await this.request({
+      method: "POST",
+      path: "/projects",
+      auth: true,
+      body: form,
+      schema: projectResponseSchema,
+      // Ten minutes. A build is tens of megabytes, and the time it takes belongs to the connection
+      // rather than the server — abandoning it halfway would report a timeout for something that is
+      // working.
+      timeoutMs: 10 * 60_000,
+    });
+    return result.ok ? ok(result.value.project) : result;
+  }
+
+  async updateProject(slug: string, input: ProjectUpdateInput): Promise<Result<Project, ApiError>> {
+    const result = await this.request({
+      method: "PUT",
+      path: `/projects/${encodeURIComponent(slug)}`,
+      auth: true,
+      body: input,
+      schema: projectResponseSchema,
+    });
+    return result.ok ? ok(result.value.project) : result;
+  }
+
+  async deleteProject(slug: string): Promise<Result<Project, ApiError>> {
+    const result = await this.request({
+      method: "DELETE",
+      path: `/projects/${encodeURIComponent(slug)}`,
+      auth: true,
+      schema: projectResponseSchema,
+    });
+    return result.ok ? ok(result.value.project) : result;
+  }
+
   private async request<T>(options: RequestOptions<T>): Promise<Result<T, ApiError>> {
     if (!this.deps.baseUrl) {
       return err(
@@ -403,7 +482,10 @@ export class HttpApiClient implements ApiClient {
     }
 
     const headers = new Headers();
-    if (options.body !== undefined) {
+    // A FormData body must NOT get a Content-Type: the browser sets it, and it carries the multipart
+    // boundary. Setting it by hand produces a request the server cannot parse.
+    const isForm = options.body instanceof FormData;
+    if (options.body !== undefined && !isForm) {
       headers.set("Content-Type", "application/json");
     }
     if (options.auth) {
@@ -418,11 +500,16 @@ export class HttpApiClient implements ApiClient {
       response = await (this.deps.fetchFn ?? fetch)(url.toString(), {
         method: options.method,
         headers,
-        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        body:
+          options.body === undefined
+            ? undefined
+            : isForm
+              ? (options.body as FormData)
+              : JSON.stringify(options.body),
         // A network that silently drops packets leaves a request hanging rather than failing, so
         // without this the app would sit on a spinner forever. Fifteen seconds is well beyond a
         // slow connection and well short of a person giving up.
-        signal: AbortSignal.timeout(this.deps.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+        signal: AbortSignal.timeout(options.timeoutMs ?? this.deps.timeoutMs ?? DEFAULT_TIMEOUT_MS),
       });
     } catch (cause) {
       // The message names the cause rather than saying "Network error". A browser reports
@@ -432,7 +519,7 @@ export class HttpApiClient implements ApiClient {
       // blocked port indistinguishable from a wrong certificate.
       const timedOut = cause instanceof Error && cause.name === "TimeoutError";
       const code = describeNetworkFailure(cause);
-      const seconds = (this.deps.timeoutMs ?? DEFAULT_TIMEOUT_MS) / 1000;
+      const seconds = (options.timeoutMs ?? this.deps.timeoutMs ?? DEFAULT_TIMEOUT_MS) / 1000;
       return err(
         new ApiError(
           ErrorCodes.INTERNAL,

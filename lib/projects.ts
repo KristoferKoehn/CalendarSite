@@ -1,62 +1,63 @@
+import { readdir, readFile } from "node:fs/promises";
+import path from "node:path";
+import { projectSchema, type Project } from "@/contract";
+
 /**
- * The projects shown on the landing page.
+ * The portfolio, read from disk at request time.
  *
- * A plain array rather than a CMS or a data layer. Adding a project is adding an object, which is
- * the whole of what this page needs to know: a name, where it goes, what state it is in, and a
- * sentence or two saying what it is.
+ * These are the same JSON documents the backend writes when an admin uploads a project, so the two
+ * services share one directory and neither keeps its own list. That is the whole point: a project
+ * added through the form appears on the landing page without a build, and there is no second place
+ * to update.
  *
- * `href` is optional on purpose — a project that is not live yet should be readable without being
- * a dead link, and a status of "soon" with an href pointing nowhere is worse than no link at all.
+ * A `node:fs` read means this only works on the server, which is why the landing page renders the
+ * list inside a Suspense boundary — see `app/page.tsx`.
  */
-export type ProjectStatus = "live" | "soon" | "archived";
 
-export interface Project {
-  name: string;
-  /** Omitted when there is nowhere to send anyone yet. */
-  href?: string;
-  status: ProjectStatus;
-  /** What it is, in a sentence or two. This is the only place the pitch lives. */
-  description: string;
-  /** What it covers, for someone skimming. */
-  scope: string[];
-  /** What it is built with. */
-  stack: string[];
-  /** Roughly when. Month and year, or just a year. */
-  when: string;
+/**
+ * Where the documents live.
+ *
+ * The same variable the backend writes to. Outside the repository because these are written at
+ * runtime and a deploy is a `git pull`.
+ */
+const PROJECTS_DIR = process.env.PROJECTS_DIR ?? path.join("C:\\sites", "projects");
+
+/**
+ * Read every project, newest first.
+ *
+ * A document that fails to parse is skipped rather than thrown, for the same reason the backend
+ * skips one: a single broken file should cost one card, not the whole page. The alternative — an
+ * exception — turns a typo in one file into a landing page that shows an error to every visitor.
+ *
+ * An unreadable or missing directory is not an error either. On a fresh deployment nothing has been
+ * uploaded yet, and "no projects" is a truthful answer that the page already has a branch for.
+ */
+export async function readProjects(): Promise<Project[]> {
+  let names: string[];
+  try {
+    names = await readdir(PROJECTS_DIR);
+  } catch {
+    return [];
+  }
+
+  const projects: Project[] = [];
+  for (const name of names) {
+    if (!name.endsWith(".json")) continue;
+    try {
+      const raw = await readFile(path.join(PROJECTS_DIR, name), "utf8");
+      const parsed = projectSchema.safeParse(JSON.parse(raw));
+      if (parsed.success) projects.push(parsed.data);
+    } catch {
+      // Unreadable, or not JSON. Skipped deliberately — see above.
+      continue;
+    }
+  }
+
+  // Newest first, matching the backend's order. Sorted on `createdAt` rather than `updatedAt`, so
+  // correcting a description does not reorder the page.
+  projects.sort((a, b) => {
+    if (a.createdAt === b.createdAt) return a.name.localeCompare(b.name);
+    return a.createdAt < b.createdAt ? 1 : -1;
+  });
+  return projects;
 }
-
-export const PROJECTS: Project[] = [
-  {
-    name: "CalendarSite",
-    href: "/calendar",
-    status: "live",
-    description:
-      "Room and appointment booking for a working fitness studio. Eight rooms on a staggered " +
-      "timetable, a wall display that keeps itself current without anyone touching it, and an " +
-      "agent-facing API that enforces the same rules the interface does.",
-    scope: ["Bookings", "Availability", "Kiosk display", "Agent API"],
-    stack: ["TypeScript", "Go", "Postgres"],
-    when: "2026",
-  },
-  {
-    name: "Match 3",
-    // The bare path, which the app router redirects to the export's entry file. `/match3/` on its
-    // own is a 308 to nowhere: Next does not serve a directory index for a static folder.
-    href: "/match3",
-    status: "live",
-    description:
-      "A gem-matching puzzle game. Swap neighbouring pieces to line up three or more, clear them, " +
-      "and keep the board from filling: every move is scored and you have twenty-five of them. " +
-      "Built as a single self-contained build that runs in the browser with no install.",
-    scope: ["Puzzle", "Score chasing", "Keyboard and touch"],
-    stack: ["Godot", "GDScript", "WebAssembly"],
-    when: "2026",
-  },
-];
-
-/** Display text for each status, kept next to the type so the two cannot drift. */
-export const STATUS_LABEL: Record<ProjectStatus, string> = {
-  live: "live",
-  soon: "soon",
-  archived: "archived",
-};
