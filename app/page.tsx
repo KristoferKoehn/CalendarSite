@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { PROJECT_STATUS_LABEL } from "@/contract";
+import { PortfolioAccount } from "@/components/portfolio-account";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { readProjects } from "@/lib/projects";
 
@@ -37,6 +38,8 @@ export default function PortfolioPage() {
             About
           </a>
           <ThemeToggle />
+          {/* The way into the app, and — when an admin is signed in — the way to publish. */}
+          <PortfolioAccount />
         </div>
       </header>
 

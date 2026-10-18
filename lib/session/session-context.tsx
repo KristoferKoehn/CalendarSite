@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { ErrorCodes, type LoginInput, type RegisterInput, type User } from "@/contract";
-import { getApiClient, type ApiError } from "@/lib/api";
+import { createTokenStore, getApiClient, type ApiError } from "@/lib/api";
 
 type SessionStatus = "loading" | "authenticated" | "anonymous";
 
@@ -37,26 +37,46 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    void getApiClient()
-      .me()
-      .then((result) => {
-        if (cancelled) return;
-        if (result.ok) {
-          setUser(result.value);
-          setStatus("authenticated");
-          return;
-        }
-        // Only a rejection by the server means the session is really gone. A network blip
-        // must not throw away a valid token, which would sign people out for being briefly
-        // offline — and would have done so mid-verification, where a failed refresh is
-        // most likely to happen.
-        const rejected =
-          result.error.code === ErrorCodes.UNAUTHENTICATED ||
-          result.error.code === ErrorCodes.FORBIDDEN;
-        if (rejected) getApiClient().logout();
-        setUser(null);
+    /**
+     * Restore the session, or report that there is none to restore.
+     *
+     * The token is checked before the request. This matters on the landing page, which is public:
+     * without it every visitor caused a `/auth/me` round trip that could only ever come back
+     * unauthenticated. Reading the token first turns a request that was always going to fail into no
+     * request at all.
+     *
+     * Returned as a promise rather than setting state inline, because a synchronous state change in
+     * an effect triggers a cascading render — the state is settled in the `.then` below instead.
+     */
+    const restore = async () => {
+      if (!createTokenStore().get()) return null;
+      return getApiClient().me();
+    };
+
+    void restore().then((result) => {
+      if (cancelled) return;
+
+      // Nothing stored: there is no session and there never was one this visit.
+      if (result === null) {
         setStatus("anonymous");
-      });
+        return;
+      }
+      if (result.ok) {
+        setUser(result.value);
+        setStatus("authenticated");
+        return;
+      }
+      // Only a rejection by the server means the session is really gone. A network blip
+      // must not throw away a valid token, which would sign people out for being briefly
+      // offline — and would have done so mid-verification, where a failed refresh is
+      // most likely to happen.
+      const rejected =
+        result.error.code === ErrorCodes.UNAUTHENTICATED ||
+        result.error.code === ErrorCodes.FORBIDDEN;
+      if (rejected) getApiClient().logout();
+      setUser(null);
+      setStatus("anonymous");
+    });
 
     return () => {
       cancelled = true;

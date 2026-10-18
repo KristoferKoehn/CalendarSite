@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { UpdateUserInput, User } from "@/contract";
 import { getApiClient, type ApiError } from "@/lib/api";
+import { cal } from "@/lib/paths";
 import { useSession } from "@/lib/session/session-context";
 import { ErrorBanner } from "@/components/error-banner";
 import { UserTable } from "@/components/user-table";
@@ -67,7 +68,17 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Users</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h1 className="text-xl font-semibold">Users</h1>
+        {/* The two administrative surfaces link to each other, so neither is reachable only by
+            remembering its address. */}
+        <a
+          href={cal("/projects")}
+          className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
+        >
+          Projects →
+        </a>
+      </div>
       <ErrorBanner error={error} />
       <UserTable
         users={users}
