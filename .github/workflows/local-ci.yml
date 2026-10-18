@@ -87,12 +87,16 @@ jobs:
 
       - name: Build
         run: |
-          # Teed so a failure can report itself. The run logs on this self-hosted runner are only
-          # readable with an authenticated GitHub client, which is no help when the build breaks and
-          # all the workflow says is "exit code 1".
-          npm run build 2>&1 | Tee-Object -FilePath build-output.txt
-          $code = $LASTEXITCODE
-          "exit=$code" | Tee-Object -FilePath build-output.txt -Append
+          # The build's output is captured by redirection and its exit code taken from the process
+          # handle, rather than piped through Tee-Object. When the build was being killed outright,
+          # a pipeline lost everything after the kill — including the status line — so the report
+          # said nothing but "here is the output, which stops halfway". Start-Process survives that.
+          $process = Start-Process -FilePath 'cmd.exe' `
+            -ArgumentList '/c', 'npm run build > build-output.txt 2>&1' `
+            -NoNewWindow -Wait -PassThru
+          $code = $process.ExitCode
+          Get-Content build-output.txt -ErrorAction SilentlyContinue
+          Write-Host "build exit code: $code"
           if ($code -ne 0) { throw "build failed (exit $code)" }
 
       # Temporary: publishes what a failure can say about itself, where it can be read without
@@ -106,6 +110,9 @@ jobs:
           if (Test-Path build-output.txt) { $report += Get-Content build-output.txt -Tail 60 }
           $report += ''
           $report += '--- environment ---'
+          $report += ('next:         {0}' -f ((Get-Content node_modules/next/package.json -Raw | ConvertFrom-Json).version))
+          $report += ('node_options: {0}' -f $env:NODE_OPTIONS)
+          $report += ('npm:          {0}' -f (npm --version))
           try {
             $os = Get-CimInstance Win32_OperatingSystem
             $report += ('total memory: {0:N0} MB' -f ($os.TotalVisibleMemorySize / 1024))
