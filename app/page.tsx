@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { PROJECT_STATUS_LABEL } from "@/contract";
@@ -99,14 +98,20 @@ async function ProjectList() {
         <li key={project.slug} className="border-b border-zinc-200 py-9 dark:border-zinc-800">
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
             {/* The name is the link, and it is the only link. A second "read more" would be a
-                second target for the same destination. */}
+                second target for the same destination.
+
+                A plain anchor rather than `next/link`, because a card leads to an application and
+                not necessarily to a Next page: an uploaded game is served by a route handler, and a
+                client-side navigation to it asks the router for a page that does not exist. That
+                produced a failed request and a blank game. A full navigation is also the honest
+                thing here — the game is a separate program, not another view of this one. */}
             <h2 className="text-lg font-medium">
-              <Link
+              <a
                 href={project.href}
                 className="underline-offset-4 hover:underline focus-visible:underline"
               >
                 {project.name}
-              </Link>
+              </a>
             </h2>
             <span className="text-sm text-zinc-500 dark:text-zinc-400">
               {PROJECT_STATUS_LABEL[project.status]}

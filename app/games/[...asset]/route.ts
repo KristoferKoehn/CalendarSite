@@ -77,12 +77,32 @@ async function resolveAsset(segments: string[]): Promise<{ file: string; isDirec
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ asset?: string[] }> },
 ) {
   const { asset = [] } = await params;
   const resolved = await resolveAsset(asset);
   if (!resolved) return new Response("Not found", { status: 404 });
+
+  // A directory has to be served at a URL ending in a slash.
+  //
+  // The export refers to its own assets relatively — `<script src="index.js">` — so the browser
+  // resolves them against the current directory. At `/games/hexard` that is `/games/`, one level too
+  // high, and every asset 404s: the page loads, the canvas is there, and the game never starts.
+  //
+  // Next used to normalise this away by redirecting `/games/hexard/` to `/games/hexard`, which is
+  // precisely backwards for this route; `skipTrailingSlashRedirect` turns that off, so the slashless
+  // form is redirected here instead. Both arrive at the form that works.
+  if (resolved.isDirectory && !new URL(request.url).pathname.endsWith("/")) {
+    const url = new URL(request.url);
+    // A relative Location rather than an absolute one. Behind the reverse proxy this request
+    // arrives as plain http on loopback, so an absolute redirect built from `request.url` would
+    // carry the wrong scheme and host — a correct destination and a pointless extra hop.
+    return new Response(null, {
+      status: 308,
+      headers: { Location: `${url.pathname}/${url.search}` },
+    });
+  }
 
   const extension = path.extname(resolved.file).toLowerCase();
   const type = TYPES[extension] ?? "application/octet-stream";
