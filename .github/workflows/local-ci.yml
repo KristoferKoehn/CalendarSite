@@ -45,6 +45,9 @@ jobs:
         run: |
           git pull origin main
           if ($LASTEXITCODE -ne 0) { throw "git pull failed (exit $LASTEXITCODE)" }
+          # Clears anything a previous failed run published for diagnosis.
+          Remove-Item -Force 'C:\sites\games\_ci-error.txt' -ErrorAction SilentlyContinue
+          Remove-Item -Force build-output.txt -ErrorAction SilentlyContinue
 
       - name: Install dependencies
         run: |
@@ -84,11 +87,26 @@ jobs:
 
       - name: Build
         run: |
-          npm run build
+          # Teed so a failure can report itself. The run logs on this self-hosted runner are only
+          # readable with an authenticated GitHub client, which is no help when the build breaks and
+          # all the workflow says is "exit code 1".
+          npm run build 2>&1 | Tee-Object -FilePath build-output.txt
           if ($LASTEXITCODE -ne 0) { throw "build failed (exit $LASTEXITCODE)" }
 
+      # Temporary: publishes the tail of the build output where it can be read without access to the
+      # run logs. The games directory is already served publicly, so this appears at
+      # /games/_ci-error.txt. Removed at the start of every run, and this step goes away once the
+      # build is fixed.
+      - name: Publish the build failure
+        if: failure()
+        run: |
+          if (-not (Test-Path build-output.txt)) { Write-Host "no build output to publish"; exit 0 }
+          $tail = (Get-Content build-output.txt -Tail 60) -join "`n"
+          Set-Content -Path 'C:\sites\games\_ci-error.txt' -Value $tail -Encoding utf8
+          Write-Host "published $(($tail -split "`n").Count) lines to /games/_ci-error.txt"
+
       - name: Restart service
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && success()
         run: |
           servy-cli restart --name='CalendarSite' --quiet | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "servy-cli restart failed (exit $LASTEXITCODE)" }
