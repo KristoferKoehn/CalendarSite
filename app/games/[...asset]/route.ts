@@ -121,8 +121,25 @@ export async function GET(
       "Cache-Control": path.basename(resolved.file) === "index.html"
         ? "no-cache"
         : "public, max-age=31536000, immutable",
-      // Godot's web export is same-origin and needs no cross-origin isolation, but these are cheap
-      // and let a threaded build work if one is ever uploaded.
+      /**
+       * Cross-origin isolation, which a Godot export with thread support cannot start without.
+       *
+       * A threaded build moves the engine into a worker and hands it a `SharedArrayBuffer`, and the
+       * browser refuses to transfer one unless the page is cross-origin isolated:
+       *
+       *   DataCloneError: Failed to execute 'postMessage' on 'Worker':
+       *   SharedArrayBuffer transfer requires self.crossOriginIsolated
+       *
+       * That failure is silent from the outside — the boot splash appears, the progress bar stops
+       * halfway, and the page sits there. It cost a deploy to find because a single-threaded export
+       * (the small one in public/match3) runs fine without these headers, so the symptom looked like
+       * a problem with one particular game.
+       *
+       * Both headers are required; either alone leaves `crossOriginIsolated` false. They are safe
+       * here because everything an export loads is same-origin.
+       */
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
       "Cross-Origin-Resource-Policy": "same-origin",
     },
   });
