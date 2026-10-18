@@ -422,6 +422,8 @@ export class HttpApiClient implements ApiClient {
     form.set("status", input.status);
     form.set("stack", input.stack.join(", "));
     form.set("when", input.when);
+    // Always sent, including "play": the backend's default only covers a client that omits it.
+    form.set("delivery", input.delivery);
     if (input.href) form.set("href", input.href);
     // Left off entirely when there is no file, so the backend sees "no upload" rather than an empty
     // one — an empty file input still submits a nameless part in some browsers.

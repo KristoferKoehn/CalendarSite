@@ -12,6 +12,27 @@ import { isoTimestampSchema } from "./common";
 export const projectStatusSchema = z.enum(["live", "soon", "archived"]);
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 
+/**
+ * What following a card does.
+ *
+ * `play` unpacks the upload and serves it; `download` hands the file over unchanged. A document
+ * written before this existed has no field at all, and `""` is what the backend sends for those, so
+ * both read as `play`.
+ */
+export const projectDeliverySchema = z.enum(["play", "download"]);
+export type ProjectDelivery = z.infer<typeof projectDeliverySchema>
+
+/**
+ * What a project's card does, with the older forms folded in.
+ *
+ * Kept as a plain validator rather than a transform: the API client is generic over the schema's
+ * output type, and a transform makes the parsed type differ from the declared one, which it cannot
+ * express. Normalising at the point of use costs one function and keeps every other type honest.
+ */
+export function projectDelivery(project: { delivery?: ProjectDelivery | "" }): ProjectDelivery {
+  return project.delivery === "download" ? "download" : "play";
+}
+
 export const projectSchema = z.object({
   slug: z.string(),
   name: z.string(),
@@ -19,6 +40,8 @@ export const projectSchema = z.object({
   status: projectStatusSchema,
   stack: z.array(z.string()),
   when: z.string(),
+  /** Empty on documents written before this existed, and on projects with no upload. */
+  delivery: z.union([projectDeliverySchema, z.literal("")]).optional(),
   /** Where the card links. A path on this site, never an absolute URL. */
   href: z.string(),
   createdAt: isoTimestampSchema,
@@ -57,6 +80,13 @@ export const projectDraftSchema = z.object({
   status: projectStatusSchema,
   stack: z.string().trim().max(400, "The stack list is too long"),
   when: z.string().trim().max(40, "The date is too long"),
+  /**
+   * Whether the upload is unpacked and played, or handed over as a file.
+   *
+   * A checkbox on the form, so it has to survive being unticked: `false` is a real answer and must
+   * not be read as "not given".
+   */
+  download: z.boolean(),
   href: z
     .string()
     .trim()
@@ -85,6 +115,7 @@ export interface ProjectCreateInput {
   status: ProjectStatus;
   stack: string[];
   when: string;
+  delivery: ProjectDelivery;
   href?: string;
   /** The zip of the export, when one was chosen. */
   game?: File;

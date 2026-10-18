@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { projectDraftSchema } from "@/contract";
+import { projectDelivery, projectDraftSchema } from "@/contract";
 
 /**
  * The admin form's validation.
@@ -17,6 +17,7 @@ const base = {
   status: "live" as const,
   stack: "Godot, GDScript",
   when: "2026",
+  download: false,
 };
 
 const issueFor = (input: unknown) => {
@@ -81,5 +82,36 @@ describe("the required fields", () => {
     for (const status of ["live", "soon", "archived"] as const) {
       expect(issueFor({ ...base, status })).toBeNull();
     }
+  });
+});
+
+describe("the download choice", () => {
+  it("is required, because unticked is a real answer", () => {
+    // A boolean that defaults to false would read "not given" and "no" as the same thing.
+    const withoutField = { ...base } as Record<string, unknown>;
+    delete withoutField.download;
+    expect(issueFor(withoutField)).not.toBeNull();
+  });
+
+  it("accepts both answers", () => {
+    expect(issueFor({ ...base, download: true })).toBeNull();
+    expect(issueFor({ ...base, download: false })).toBeNull();
+  });
+});
+
+describe("reading a project's delivery", () => {
+  it("treats download as download", () => {
+    expect(projectDelivery({ delivery: "download" })).toBe("download");
+  });
+
+  it("treats play and the older forms as play", () => {
+    // Documents written before delivery existed have no field, and the backend sends "" for those.
+    expect(projectDelivery({ delivery: "play" })).toBe("play");
+    expect(projectDelivery({ delivery: "" })).toBe("play");
+    expect(projectDelivery({})).toBe("play");
+  });
+
+  it("is what the project list relies on, so it must not guess download", () => {
+    expect(projectDelivery({ delivery: undefined })).not.toBe("download");
   });
 });

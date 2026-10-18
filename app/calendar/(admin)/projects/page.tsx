@@ -33,6 +33,7 @@ const EMPTY: ProjectDraft = {
   status: "live",
   stack: "",
   when: String(new Date().getFullYear()),
+  download: false,
   href: "",
 };
 
@@ -99,8 +100,13 @@ export default function AdminProjectsPage() {
     }
     setErrors({});
 
+    if (parsed.data.download && !game) {
+      // The server refuses this too; saying it here is clearer than a round trip.
+      setFormError("A download needs a file to hand over.");
+      return;
+    }
     if (!game && !parsed.data.href) {
-      setFormError("Choose a game build, or give the address of a project hosted elsewhere.");
+      setFormError("Choose a file, or give the address of a project hosted elsewhere.");
       return;
     }
 
@@ -115,6 +121,7 @@ export default function AdminProjectsPage() {
         .map((entry) => entry.trim())
         .filter(Boolean),
       when: parsed.data.when,
+      delivery: parsed.data.download ? "download" : "play",
       href: parsed.data.href || undefined,
       game: game ?? undefined,
     });
@@ -159,7 +166,15 @@ export default function AdminProjectsPage() {
       </p>
 
       <form onSubmit={handleSubmit} className={`max-w-2xl space-y-5 p-4 ${CARD_SURFACE}`}>
-        <Field label="Game build" hint="The .zip a Godot web export produces. Leave empty to describe a project hosted elsewhere." error={errors.game}>
+        <Field
+          label="File"
+          hint={
+            draft.download
+              ? "Kept exactly as uploaded and handed over as a download."
+              : "The .zip a Godot web export produces. It is unpacked and served as a game."
+          }
+          error={errors.game}
+        >
           <input
             id="project-game"
             type="file"
@@ -174,6 +189,24 @@ export default function AdminProjectsPage() {
           )}
         </Field>
 
+        {/* The one choice that changes what the card *is*: a game to play, or a file to take away.
+            It reads as a checkbox because that is what it is, and unticking it is a real answer. */}
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={draft.download}
+            onChange={(event) => update("download", event.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block font-medium">Offer this as a download</span>
+            <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+              The card hands over the zip instead of opening a game. Nothing is unpacked, so the file
+              does not need to be a web export.
+            </span>
+          </span>
+        </label>
+
         <Field label="Title" hint="Shown as the card's heading, and it is the link." error={errors.name}>
           <input
             type="text"
@@ -185,7 +218,11 @@ export default function AdminProjectsPage() {
 
         <Field
           label="Address"
-          hint="Optional. Derived from the title. The game is served at /games/<address>/."
+          hint={
+            draft.download
+              ? "Optional. Derived from the title. The file is served at /downloads/<address>.zip."
+              : "Optional. Derived from the title. The game is served at /games/<address>/."
+          }
           error={errors.slug}
         >
           <input
@@ -243,14 +280,18 @@ export default function AdminProjectsPage() {
 
         <Field
           label="Link"
-          hint="Optional. Defaults to the uploaded build. Set it for a project that lives elsewhere, such as /calendar."
+          hint={
+            draft.download
+              ? "Optional. Defaults to the uploaded file. Set it for a project that lives elsewhere, such as /calendar."
+              : "Optional. Defaults to the uploaded build. Set it for a project that lives elsewhere, such as /calendar."
+          }
           error={errors.href}
         >
           <input
             type="text"
             value={draft.href ?? ""}
             onChange={(event) => update("href", event.target.value)}
-            placeholder="/games/<address>/"
+            placeholder={draft.download ? "/downloads/<address>.zip" : "/games/<address>/"}
             className={INPUT}
           />
         </Field>
