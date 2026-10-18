@@ -61,9 +61,12 @@ export const projectDraftSchema = z.object({
     .string()
     .trim()
     .max(300, "The address is too long")
-    // A leading slash and not a protocol-relative one: a card links within this site.
-    .regex(/^\/(?!\/)/, "Start with a single slash")
-    .refine((v) => !v.includes(".."), "The address cannot contain '..'")
+    // An empty string means "not given", and the form's initial value is empty. Written as a
+    // refinement rather than `.regex(...).optional()`, because `.optional()` only forgives
+    // `undefined` — `""` would still have to satisfy the pattern, so leaving the field blank could
+    // never pass no matter how optional it was declared to be.
+    .refine((value) => value === "" || /^\/(?!\/)/.test(value), "Start with a single slash")
+    .refine((value) => !value.includes(".."), "The address cannot contain '..'")
     .optional(),
 });
 export type ProjectDraft = z.infer<typeof projectDraftSchema>;
