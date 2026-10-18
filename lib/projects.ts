@@ -1,63 +1,44 @@
-import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
-import { projectSchema, type Project } from "@/contract";
+import { projectListSchema, type Project } from "@/contract";
 
 /**
- * The portfolio, read from disk at request time.
+ * The portfolio, fetched from the API at request time.
  *
- * These are the same JSON documents the backend writes when an admin uploads a project, so the two
- * services share one directory and neither keeps its own list. That is the whole point: a project
- * added through the form appears on the landing page without a build, and there is no second place
- * to update.
+ * This read used to come straight off disk, from the directory the backend writes. That worked, and
+ * it coupled the two services to a shared path — but it cannot be built: Turbopack follows a
+ * filesystem read with a statically-known path and treats what it finds as build inputs. With the
+ * directory empty the build passes, and as soon as a project is published the build fails with
+ * "Path C:/sites/projects/calendarsite.json could not be resolved because a component does not
+ * exist". The failure arrived the moment the first project existed, which is the worst possible
+ * time for a deploy to stop working.
  *
- * A `node:fs` read means this only works on the server, which is why the landing page renders the
- * list inside a Suspense boundary — see `app/page.tsx`.
+ * Going through the API removes the problem rather than hiding it: there is no filesystem path for
+ * the bundler to trace, the web app no longer needs read access to another service's data directory,
+ * and the rules about what a project is live in one place. The backend already skips a document it
+ * cannot parse, which is where that belonged anyway.
+ *
+ * `API_INTERNAL_URL` is for a deployment where the web app should talk to the backend over loopback
+ * instead of going out through the public hostname and back.
  */
+const API_URL = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
 
 /**
- * Where the documents live.
+ * Every published project, newest first.
  *
- * The same variable the backend writes to. Outside the repository because these are written at
- * runtime and a deploy is a `git pull`.
- */
-const PROJECTS_DIR = process.env.PROJECTS_DIR ?? path.join("C:\\sites", "projects");
-
-/**
- * Read every project, newest first.
- *
- * A document that fails to parse is skipped rather than thrown, for the same reason the backend
- * skips one: a single broken file should cost one card, not the whole page. The alternative — an
- * exception — turns a typo in one file into a landing page that shows an error to every visitor.
- *
- * An unreadable or missing directory is not an error either. On a fresh deployment nothing has been
- * uploaded yet, and "no projects" is a truthful answer that the page already has a branch for.
+ * A failure returns an empty list rather than throwing. A front page that renders "nothing published"
+ * while the API is down is wrong, but it is a quieter wrong than an error page where a portfolio
+ * should be — and the alternative, crashing the shell, takes the whole page with it.
  */
 export async function readProjects(): Promise<Project[]> {
-  let names: string[];
+  if (!API_URL) return [];
+
   try {
-    names = await readdir(PROJECTS_DIR);
+    // Not cached. A project published through the admin form is meant to appear on the next visit,
+    // and caching here would restore exactly the staleness this feature exists to remove.
+    const response = await fetch(`${API_URL}/projects`, { cache: "no-store" });
+    if (!response.ok) return [];
+    const parsed = projectListSchema.safeParse(await response.json());
+    return parsed.success ? parsed.data.projects : [];
   } catch {
     return [];
   }
-
-  const projects: Project[] = [];
-  for (const name of names) {
-    if (!name.endsWith(".json")) continue;
-    try {
-      const raw = await readFile(path.join(PROJECTS_DIR, name), "utf8");
-      const parsed = projectSchema.safeParse(JSON.parse(raw));
-      if (parsed.success) projects.push(parsed.data);
-    } catch {
-      // Unreadable, or not JSON. Skipped deliberately — see above.
-      continue;
-    }
-  }
-
-  // Newest first, matching the backend's order. Sorted on `createdAt` rather than `updatedAt`, so
-  // correcting a description does not reorder the page.
-  projects.sort((a, b) => {
-    if (a.createdAt === b.createdAt) return a.name.localeCompare(b.name);
-    return a.createdAt < b.createdAt ? 1 : -1;
-  });
-  return projects;
 }
