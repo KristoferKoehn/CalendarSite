@@ -44,5 +44,5 @@ next-env.d.ts
 # generated contract
 /contract/out/
 
-# Build output captured by CI when a build fails, so the failure can report itself.
+# Build output, captured by CI so a failure is visible in the run log.
 build-output.txt

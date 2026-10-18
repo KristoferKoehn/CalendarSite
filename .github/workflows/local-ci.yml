@@ -45,9 +45,6 @@ jobs:
         run: |
           git pull origin main
           if ($LASTEXITCODE -ne 0) { throw "git pull failed (exit $LASTEXITCODE)" }
-          # Clears anything a previous failed run published for diagnosis.
-          Remove-Item -Force 'C:\sites\games\_ci-error.txt' -ErrorAction SilentlyContinue
-          Remove-Item -Force build-output.txt -ErrorAction SilentlyContinue
 
       - name: Install dependencies
         run: |
@@ -87,48 +84,20 @@ jobs:
 
       - name: Build
         run: |
-          # The build's output is captured by redirection and its exit code taken from the process
-          # handle, rather than piped through Tee-Object. When the build was being killed outright,
-          # a pipeline lost everything after the kill — including the status line — so the report
-          # said nothing but "here is the output, which stops halfway". Start-Process survives that.
           $process = Start-Process -FilePath 'cmd.exe' `
             -ArgumentList '/c', 'npm run build > build-output.txt 2>&1' `
             -NoNewWindow -Wait -PassThru
           $code = $process.ExitCode
+          # Printed in full so the run log carries the reason. The output is captured by
+          # redirection rather than piped through Tee-Object, because a pipe loses everything after a
+          # process that is killed outright — including the status line, which is the one thing that
+          # would have explained the kill.
           Get-Content build-output.txt -ErrorAction SilentlyContinue
-          Write-Host "build exit code: $code"
           if ($code -ne 0) { throw "build failed (exit $code)" }
 
-      # Temporary: publishes what a failure can say about itself, where it can be read without
-      # access to the run logs. The games directory is already served publicly, so this appears at
-      # /games/_ci-error.txt. Cleaned at the start of every run, and this step goes away once the
-      # build is fixed.
-      - name: Publish the build failure
-        if: failure()
-        run: |
-          $report = @()
-          if (Test-Path build-output.txt) { $report += Get-Content build-output.txt -Tail 60 }
-          $report += ''
-          $report += '--- environment ---'
-          $report += ('next:         {0}' -f ((Get-Content node_modules/next/package.json -Raw | ConvertFrom-Json).version))
-          $report += ('node_options: {0}' -f $env:NODE_OPTIONS)
-          $report += ('npm:          {0}' -f (npm --version))
-          try {
-            $os = Get-CimInstance Win32_OperatingSystem
-            $report += ('total memory: {0:N0} MB' -f ($os.TotalVisibleMemorySize / 1024))
-            $report += ('free memory:  {0:N0} MB' -f ($os.FreePhysicalMemory / 1024))
-          } catch { $report += "memory unavailable: $_" }
-          try {
-            $report += ('disk free:    {0:N0} MB' -f ((Get-PSDrive C).Free / 1MB))
-          } catch { $report += "disk unavailable: $_" }
-          $report += ('cpus:         {0}' -f [Environment]::ProcessorCount)
-          $report += ('node:         {0}' -f (node --version))
-          # A container limit is the usual reason a build dies with no message at all.
-          $report += ('container:    {0}' -f (Test-Path '/.dockerenv'))
-          Set-Content -Path 'C:\sites\games\_ci-error.txt' -Value ($report -join "`n") -Encoding utf8
-          Write-Host "published $($report.Count) lines to /games/_ci-error.txt"
-
       - name: Restart service
+        # `success()` is not redundant: this used to run after a failed build, restarting the service
+        # into a half-written .next and leaving the live site answering 500s.
         if: github.event_name == 'push' && success()
         run: |
           servy-cli restart --name='CalendarSite' --quiet | Out-Null
