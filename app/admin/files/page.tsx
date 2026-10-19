@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import type { StoredFile } from "@/contract";
 import { getApiClient } from "@/lib/api";
 import { CARD_SURFACE, PAGE_TITLE } from "@/lib/card";
 import { fileHref } from "@/lib/files";
-import { adminPath, cal } from "@/lib/paths";
 
 /**
  * The file shelf.
@@ -109,20 +107,8 @@ export default function AdminFilesPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className={PAGE_TITLE}>Files</h1>
-        <div className="flex items-center gap-4 text-sm">
-          <Link href={adminPath("/projects")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
-            Projects →
-          </Link>
-          <Link href={adminPath("/downloads")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
-            Downloads →
-          </Link>
-          <Link href={cal("/users")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
-            Accounts →
-          </Link>
-        </div>
-      </div>
+      {/* The shell navigates between these pages; repeating it here was two navigations for one job. */}
+      <h1 className={PAGE_TITLE}>Files</h1>
 
       <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
         Files that belong to no project. Each one gets a public link you can paste anywhere — the file

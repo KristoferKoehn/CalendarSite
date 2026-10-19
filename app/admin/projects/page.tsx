@@ -12,7 +12,7 @@ import {
 } from "@/contract";
 import { getApiClient } from "@/lib/api";
 import { CARD_SURFACE, PAGE_TITLE } from "@/lib/card";
-import { adminPath, cal } from "@/lib/paths";
+
 import { splitList, toDraft, toUpdate } from "@/lib/project-draft";
 
 /**
@@ -192,15 +192,9 @@ export default function AdminProjectsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className={PAGE_TITLE}>Projects</h1>
-        <Link href={adminPath("/downloads")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
-          Downloads →
-        </Link>
-        <Link href={cal("/users")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
-          Accounts →
-        </Link>
-      </div>
+      {/* No cross-links here: the shell's navigation already offers the other surfaces, and repeating
+          them at the top of every page was two navigations for one job. */}
+      <h1 className={PAGE_TITLE}>Projects</h1>
 
       <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
         Upload a Godot web export and describe it. The build is unpacked on the server and the

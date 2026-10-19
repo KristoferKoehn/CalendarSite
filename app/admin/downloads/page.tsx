@@ -78,17 +78,8 @@ export default function AdminDownloadsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className={PAGE_TITLE}>Downloads</h1>
-        <div className="flex flex-wrap items-center gap-4 text-sm">
-          <Link href={adminPath("/projects")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
-            Projects →
-          </Link>
-          <Link href={adminPath("/files")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
-            Files →
-          </Link>
-        </div>
-      </div>
+      {/* The shell navigates between these pages; repeating it here was two navigations for one job. */}
+      <h1 className={PAGE_TITLE}>Downloads</h1>
 
       <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
         The archives this site hands over, each with its own address. They are created by a project —
