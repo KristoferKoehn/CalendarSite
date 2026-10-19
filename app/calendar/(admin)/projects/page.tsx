@@ -302,7 +302,11 @@ export default function AdminProjectsPage() {
           />
         </Field>
 
-        <Field label="Description" hint="A sentence or two. This is the only place the pitch lives." error={errors.description}>
+        <Field
+          label="Description"
+          hint="A sentence or two. Links as [text](https://…), plus **bold** and `code`."
+          error={errors.description}
+        >
           <textarea
             value={draft.description}
             onChange={(event) => update("description", event.target.value)}

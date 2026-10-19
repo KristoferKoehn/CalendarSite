@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { PROJECT_STATUS_LABEL } from "@/contract";
 import { PortfolioAccount } from "@/components/portfolio-account";
+import { RichText } from "@/components/rich-text";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { readProjects } from "@/lib/projects";
 
@@ -118,9 +119,12 @@ async function ProjectList() {
             </span>
           </div>
 
-          <p className="mt-3 max-w-xl text-zinc-600 dark:text-zinc-400 sm:pl-8">
-            {project.description}
-          </p>
+          {/* The description may carry a little markdown — a link, emphasis, code — so it is rendered
+              rather than printed. Everything is escaped by construction; see components/rich-text. */}
+          <RichText
+            text={project.description}
+            className="mt-3 max-w-xl text-zinc-600 first:mt-3 dark:text-zinc-400 sm:pl-8"
+          />
 
           <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400 sm:pl-8">
             <span>{project.stack.join(" · ")}</span>
