@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   PROJECT_STATUS_LABEL,
+  projectDelivery,
   projectDraftSchema,
   type Project,
   type ProjectDraft,
@@ -12,6 +13,7 @@ import {
 import { getApiClient } from "@/lib/api";
 import { CARD_SURFACE, PAGE_TITLE } from "@/lib/card";
 import { cal } from "@/lib/paths";
+import { splitList, toDraft, toUpdate } from "@/lib/project-draft";
 
 /**
  * Adding a project, and seeing the ones already there.
@@ -48,6 +50,9 @@ export default function AdminProjectsPage() {
   const [created, setCreated] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
+  // The project being edited, or null when the form is adding one.
+  const [editing, setEditing] = useState<Project | null>(null);
+  const [savedNotice, setSavedNotice] = useState<Project | null>(null);
 
   // Loading the list is asynchronous, so the state changes land after an await rather than
   // synchronously inside the effect — which is what the lint rule against setState-in-effect is
@@ -100,6 +105,22 @@ export default function AdminProjectsPage() {
     }
     setErrors({});
 
+    // Saving an existing project: no file is involved, and the checks below are about creating one.
+    if (editing) {
+      setBusy(true);
+      const saved = await api.updateProject(editing.slug, toUpdate(parsed.data));
+      setBusy(false);
+      if (!saved.ok) {
+        setFormError(saved.error.message);
+        return;
+      }
+      setSavedNotice(saved.value);
+      setEditing(null);
+      setDraft(EMPTY);
+      await refresh();
+      return;
+    }
+
     if (parsed.data.download && !game) {
       // The server refuses this too; saying it here is clearer than a round trip.
       setFormError("A download needs a file to hand over.");
@@ -116,10 +137,7 @@ export default function AdminProjectsPage() {
       slug: parsed.data.slug || undefined,
       description: parsed.data.description,
       status: parsed.data.status,
-      stack: parsed.data.stack
-        .split(",")
-        .map((entry) => entry.trim())
-        .filter(Boolean),
+      stack: splitList(parsed.data.stack),
       when: parsed.data.when,
       delivery: parsed.data.download ? "download" : "play",
       href: parsed.data.href || undefined,
@@ -141,6 +159,28 @@ export default function AdminProjectsPage() {
     await refresh();
   }
 
+  /** Load a project into the form. The address and the delivery are not editable — see toDraft. */
+  function startEditing(project: Project) {
+    setEditing(project);
+    setDraft(toDraft(project));
+    setErrors({});
+    setFormError(null);
+    setCreated(null);
+    setSavedNotice(null);
+    // A file chosen for a different project must not be attached to this one.
+    setGame(null);
+    const input = document.getElementById("project-game") as HTMLInputElement | null;
+    if (input) input.value = "";
+    document.getElementById("project-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function stopEditing() {
+    setEditing(null);
+    setDraft(EMPTY);
+    setErrors({});
+    setFormError(null);
+  }
+
   async function handleDelete(project: Project) {
     const result = await api.deleteProject(project.slug);
     if (!result.ok) {
@@ -157,7 +197,7 @@ export default function AdminProjectsPage() {
         <Link href={cal("/downloads")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
           Downloads →
         </Link>
-        <Link href={cal("/downloads")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+        <Link href={cal("/users")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
           Accounts →
         </Link>
       </div>
@@ -165,50 +205,72 @@ export default function AdminProjectsPage() {
       <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
         Upload a Godot web export and describe it. The build is unpacked on the server and the
         description is saved beside it, so the landing page picks it up on the next visit — no
-        rebuild, no deploy.
+        rebuild, no deploy. An existing project can be edited without touching its files.
       </p>
 
-      <form onSubmit={handleSubmit} className={`max-w-2xl space-y-5 p-4 ${CARD_SURFACE}`}>
-        <Field
-          label="File"
-          hint={
-            draft.download
-              ? "Kept exactly as uploaded and handed over as a download."
-              : "The .zip a Godot web export produces. It is unpacked and served as a game."
-          }
-          error={errors.game}
-        >
-          <input
-            id="project-game"
-            type="file"
-            accept=".zip,application/zip"
-            onChange={(event) => setGame(event.target.files?.[0] ?? null)}
-            className="block w-full text-sm file:mr-3 file:rounded file:border file:border-zinc-300 file:bg-transparent file:px-3 file:py-1 file:text-sm dark:file:border-zinc-700"
-          />
-          {game && (
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              {game.name} · {(game.size / 1024 / 1024).toFixed(1)} MB
+      <form id="project-form" onSubmit={handleSubmit} className={`max-w-2xl space-y-5 p-4 ${CARD_SURFACE}`}>
+        {editing && (
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-200 pb-3 dark:border-zinc-800">
+            <p className="text-sm font-medium">
+              Editing <span className="font-semibold">{editing.name}</span>
             </p>
-          )}
-        </Field>
+            <button
+              type="button"
+              onClick={stopEditing}
+              className="text-sm text-zinc-500 underline underline-offset-2 dark:text-zinc-400"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
-        {/* The one choice that changes what the card *is*: a game to play, or a file to take away.
-            It reads as a checkbox because that is what it is, and unticking it is a real answer. */}
-        <label className="flex items-start gap-3 text-sm">
-          <input
-            type="checkbox"
-            checked={draft.download}
-            onChange={(event) => update("download", event.target.checked)}
-            className="mt-0.5"
-          />
-          <span>
-            <span className="block font-medium">Offer this as a download</span>
-            <span className="block text-xs text-zinc-500 dark:text-zinc-400">
-              The card hands over the zip instead of opening a game. Nothing is unpacked, so the file
-              does not need to be a web export.
-            </span>
-          </span>
-        </label>
+        {/* A file belongs to the upload that created the project. Offering the picker while editing
+            would suggest a build could be swapped, which this form cannot do — changing one means
+            deleting the project and adding it again. */}
+        {!editing && (
+          <>
+            <Field
+              label="File"
+              hint={
+                draft.download
+                  ? "Kept exactly as uploaded and handed over as a download."
+                  : "The .zip a Godot web export produces. It is unpacked and served as a game."
+              }
+              error={errors.game}
+            >
+              <input
+                id="project-game"
+                type="file"
+                accept=".zip,application/zip"
+                onChange={(event) => setGame(event.target.files?.[0] ?? null)}
+                className="block w-full text-sm file:mr-3 file:rounded file:border file:border-zinc-300 file:bg-transparent file:px-3 file:py-1 file:text-sm dark:file:border-zinc-700"
+              />
+              {game && (
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {game.name} · {(game.size / 1024 / 1024).toFixed(1)} MB
+                </p>
+              )}
+            </Field>
+
+            {/* The one choice that changes what the card *is*: a game to play, or a file to take away.
+                It reads as a checkbox because that is what it is, and unticking it is a real answer. */}
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={draft.download}
+                onChange={(event) => update("download", event.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="block font-medium">Offer this as a download</span>
+                <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                  The card hands over the zip instead of opening a game. Nothing is unpacked, so the
+                  file does not need to be a web export.
+                </span>
+              </span>
+            </label>
+          </>
+        )}
 
         <Field label="Title" hint="Shown as the card's heading, and it is the link." error={errors.name}>
           <input
@@ -222,9 +284,11 @@ export default function AdminProjectsPage() {
         <Field
           label="Address"
           hint={
-            draft.download
-              ? "Optional. Derived from the title. The file is served at /downloads/<address>.zip."
-              : "Optional. Derived from the title. The game is served at /games/<address>/."
+            editing
+              ? "The project's address. It cannot change: the files are already installed under it."
+              : draft.download
+                ? "Optional. Derived from the title. The file is served at /downloads/<address>.zip."
+                : "Optional. Derived from the title. The game is served at /games/<address>/."
           }
           error={errors.slug}
         >
@@ -233,7 +297,8 @@ export default function AdminProjectsPage() {
             value={draft.slug ?? ""}
             onChange={(event) => update("slug", event.target.value)}
             placeholder="derived from the title"
-            className={INPUT}
+            readOnly={Boolean(editing)}
+            className={`${INPUT} ${editing ? "opacity-60" : ""}`}
           />
         </Field>
 
@@ -314,16 +379,37 @@ export default function AdminProjectsPage() {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-        >
-          {busy ? "Uploading…" : "Add project"}
-        </button>
-        {busy && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+          >
+            {busy ? (editing ? "Saving…" : "Uploading…") : editing ? "Save changes" : "Add project"}
+          </button>
+          {editing && (
+            <button
+              type="button"
+              onClick={stopEditing}
+              disabled={busy}
+              className="rounded border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              Discard
+            </button>
+          )}
+        </div>
+        {busy && !editing && (
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             A large build takes a while to upload. Nothing is visible until it has finished.
+          </p>
+        )}
+        {savedNotice && (
+          <p className="text-sm text-green-700 dark:text-green-400">
+            Saved <span className="font-medium">{savedNotice.name}</span>.{" "}
+            <Link href="/" className="underline">
+              See the card
+            </Link>
+            .
           </p>
         )}
       </form>
@@ -338,13 +424,26 @@ export default function AdminProjectsPage() {
         ) : (
           <ul className={`divide-y divide-zinc-100 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800 ${CARD_SURFACE}`}>
             {projects.map((project) => (
-              <li key={project.slug} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              <li
+                key={project.slug}
+                className={`flex flex-wrap items-center gap-3 px-4 py-3 ${
+                  editing?.slug === project.slug ? "bg-zinc-50 dark:bg-zinc-800/50" : ""
+                }`}
+              >
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{project.name}</p>
                   <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">
-                    {project.href} · {PROJECT_STATUS_LABEL[project.status]}
+                    {project.href} · {PROJECT_STATUS_LABEL[project.status]} ·{" "}
+                    {projectDelivery(project) === "download" ? "handed over as a file" : "plays in the browser"}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => startEditing(project)}
+                  className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                >
+                  Edit
+                </button>
                 <Link href={project.href} className="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
                   View
                 </Link>
