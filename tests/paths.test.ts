@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { CALENDAR, PORTFOLIO, cal } from "@/lib/paths";
+import { ADMIN, CALENDAR, PORTFOLIO, adminPath, cal } from "@/lib/paths";
 
 /**
  * Every navigation target must be prefixed.
@@ -29,12 +29,12 @@ const CALENDAR_PREFIX = /^\/calendar(\/|$)/;
  * below vacuous.
  */
 function isDeliberatelyOutsideTheCalendar(target: string): boolean {
-  return /^(\/$|\/calendar(\/|$)|\/match3(\/|$)|\/api(\/|$)|#|mailto:|https?:)/.test(target);
+  return /^(\/$|\/calendar(\/|$)|\/admin(\/|$)|\/match3(\/|$)|\/api(\/|$)|#|mailto:|https?:)/.test(target);
 }
 
-type Target = { path: string; wrapped: boolean };
+type Target = { path: string; wrapped: boolean; wrapper: string | null };
 
-/** Navigation targets in a file, with a note of whether `cal()` wrapped them. */
+/** Navigation targets in a file, with a note of which helper wrapped them, if any. */
 function navigationTargets(src: string): Target[] {
   const found: Target[] = [];
   const patterns = [
@@ -46,8 +46,8 @@ function navigationTargets(src: string): Target[] {
   for (const re of patterns) {
     for (const m of src.matchAll(re)) {
       // The plain-href pattern has the path in group 1; the others have a wrapper name then a path.
-      if (m.length === 2) found.push({ path: m[1], wrapped: false });
-      else found.push({ path: m[2], wrapped: m[1] === "cal" });
+      if (m.length === 2) found.push({ path: m[1], wrapped: false, wrapper: null });
+      else found.push({ path: m[2], wrapped: Boolean(m[1]), wrapper: m[1] || null });
     }
   }
   return found;
@@ -93,13 +93,29 @@ describe("navigation targets in the source", () => {
     expect(files.length).toBeGreaterThan(20);
   });
 
-  it("are all either wrapped in cal() or deliberately outside the calendar", () => {
+  it("are all either wrapped in a helper or deliberately outside the calendar", () => {
     const offenders: string[] = [];
     for (const file of files) {
-      for (const { path, wrapped } of navigationTargets(readFileSync(file, "utf8"))) {
-        if (wrapped) continue;
+      for (const { path, wrapper } of navigationTargets(readFileSync(file, "utf8"))) {
+        // Any helper is deliberate: `cal` builds a calendar path, `adminPath` an admin one. What this
+        // catches is a path typed straight into a link, which is how the three that broke were written.
+        if (wrapper) continue;
         if (isDeliberatelyOutsideTheCalendar(path)) continue;
         offenders.push(`${file} -> ${path}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("does not link to the admin pages at their old calendar addresses", () => {
+    // They moved to /admin because none of it is about the calendar. A stale link would still work —
+    // the middleware redirects it — which is exactly why it would go unnoticed: the page loads, one
+    // hop later, and the address in the code goes on saying the wrong thing.
+    const offenders: string[] = [];
+    for (const file of files) {
+      const src = readFileSync(file, "utf8");
+      for (const stale of ["/calendar/projects", "/calendar/files", "/calendar/downloads"]) {
+        if (src.includes(`"${stale}"`) || src.includes(`\`${stale}\``)) offenders.push(`${file} -> ${stale}`);
       }
     }
     expect(offenders).toEqual([]);
@@ -137,5 +153,29 @@ describe("PORTFOLIO", () => {
   it("is the root, which is where the projects page is served", () => {
     expect(PORTFOLIO).toBe("/");
     expect(CALENDAR_PREFIX.test(PORTFOLIO)).toBe(false);
+  });
+});
+
+describe("adminPath()", () => {
+  it("prefixes an admin path", () => {
+    expect(adminPath("/projects")).toBe("/admin/projects");
+    expect(adminPath("/files")).toBe("/admin/files");
+    expect(adminPath("/downloads")).toBe("/admin/downloads");
+  });
+
+  it("maps the admin root to the prefix itself, not to a trailing slash", () => {
+    expect(adminPath("/")).toBe(ADMIN);
+    expect(adminPath("/")).not.toBe("/admin/");
+  });
+
+  it("refuses a path without a leading slash", () => {
+    expect(() => adminPath("projects")).toThrow(/leading slash/);
+  });
+
+  it("is not under the calendar, which is the point of it", () => {
+    // Projects, files and downloads were only ever under /calendar because that was the app the site
+    // started as. None of them is about rooms or bookings.
+    expect(CALENDAR_PREFIX.test(adminPath("/projects"))).toBe(false);
+    expect(ADMIN).not.toBe(CALENDAR);
   });
 });

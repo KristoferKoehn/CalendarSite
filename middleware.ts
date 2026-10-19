@@ -22,6 +22,22 @@ import { NextResponse, type NextRequest } from "next/server";
  * 308 rather than 307: these are permanent, and the destination is stable. The alternative would
  * re-ask the browser on every request forever.
  */
+/**
+ * Pages that moved out of the calendar into the admin area.
+ *
+ * Projects, the file shelf and the downloads inventory were only ever under `/calendar` because that
+ * was the app the site started as. They belong to the site, not the calendar, so they moved to
+ * `/admin` — and these three addresses were live long enough that somebody may have them bookmarked.
+ *
+ * Kept separate from the map below because these are matched on the full path, not on a flat name
+ * stripped of its prefix.
+ */
+const MOVED: Record<string, string> = {
+  "/calendar/projects": "/admin/projects",
+  "/calendar/files": "/admin/files",
+  "/calendar/downloads": "/admin/downloads",
+};
+
 const OLD_URLS: Record<string, string> = {
   today: "/calendar/today",
   schedule: "/calendar/schedule",
@@ -42,6 +58,11 @@ const OLD_URLS: Record<string, string> = {
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  // The pages that moved to the admin area, matched on the whole path.
+  const moved = MOVED[pathname];
+  if (moved) return NextResponse.redirect(new URL(moved + search, request.url), 308);
+
   // Exact match only: the calendar's own routes already live under /calendar, and a prefix match
   // would catch them and redirect them to themselves.
   const target = OLD_URLS[pathname.replace(/^\//, "")];
@@ -60,5 +81,6 @@ export const config = {
     "/today", "/schedule", "/kiosk", "/appointments", "/resources", "/people", "/settings",
     "/users", "/login", "/register", "/welcome", "/verify-email", "/reset-password",
     "/forgot-password", "/resend-verification",
+    "/calendar/projects", "/calendar/files", "/calendar/downloads",
   ],
 };

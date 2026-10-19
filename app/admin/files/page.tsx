@@ -6,7 +6,7 @@ import type { StoredFile } from "@/contract";
 import { getApiClient } from "@/lib/api";
 import { CARD_SURFACE, PAGE_TITLE } from "@/lib/card";
 import { fileHref } from "@/lib/files";
-import { cal } from "@/lib/paths";
+import { adminPath, cal } from "@/lib/paths";
 
 /**
  * The file shelf.
@@ -112,10 +112,10 @@ export default function AdminFilesPage() {
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className={PAGE_TITLE}>Files</h1>
         <div className="flex items-center gap-4 text-sm">
-          <Link href={cal("/projects")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+          <Link href={adminPath("/projects")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
             Projects →
           </Link>
-          <Link href={cal("/downloads")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+          <Link href={adminPath("/downloads")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
             Downloads →
           </Link>
           <Link href={cal("/users")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">

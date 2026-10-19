@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Download } from "@/contract";
 import { getApiClient } from "@/lib/api";
 import { CARD_SURFACE, PAGE_TITLE } from "@/lib/card";
-import { cal } from "@/lib/paths";
+import { adminPath } from "@/lib/paths";
 
 /**
  * The downloads inventory.
@@ -81,10 +81,10 @@ export default function AdminDownloadsPage() {
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className={PAGE_TITLE}>Downloads</h1>
         <div className="flex flex-wrap items-center gap-4 text-sm">
-          <Link href={cal("/projects")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+          <Link href={adminPath("/projects")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
             Projects →
           </Link>
-          <Link href={cal("/files")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+          <Link href={adminPath("/files")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
             Files →
           </Link>
         </div>
@@ -94,7 +94,7 @@ export default function AdminDownloadsPage() {
         The archives this site hands over, each with its own address. They are created by a project —
         a card with the download box ticked — so a way to remove one is to delete its project. Files
         that belong to no project are on the{" "}
-        <Link href={cal("/files")} className="underline">
+        <Link href={adminPath("/files")} className="underline">
           Files
         </Link>{" "}
         shelf.
@@ -121,7 +121,7 @@ export default function AdminDownloadsPage() {
                   {download.projectName ? (
                     <>
                       offered by{" "}
-                      <Link href={cal("/projects")} className="underline underline-offset-2">
+                      <Link href={adminPath("/projects")} className="underline underline-offset-2">
                         {download.projectName}
                       </Link>
                     </>

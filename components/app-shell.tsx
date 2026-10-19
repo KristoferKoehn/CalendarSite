@@ -60,8 +60,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             People
           </Link>
           {user?.role === "admin" && (
+            /* Named for what it opens. It used to say "Admin", which now reads as the site
+               administration under /admin — a different set of pages, reached from the portfolio. */
             <Link href="/calendar/users" className="hover:underline">
-              Admin
+              Accounts
             </Link>
           )}
           <div className="ml-auto flex items-center gap-3">

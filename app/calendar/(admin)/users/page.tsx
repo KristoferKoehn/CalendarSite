@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { UpdateUserInput, User } from "@/contract";
 import { getApiClient, type ApiError } from "@/lib/api";
-import { cal } from "@/lib/paths";
+import { adminPath } from "@/lib/paths";
 import { useSession } from "@/lib/session/session-context";
 import { ErrorBanner } from "@/components/error-banner";
 import { UserTable } from "@/components/user-table";
@@ -73,7 +73,7 @@ export default function AdminUsersPage() {
         {/* The two administrative surfaces link to each other, so neither is reachable only by
             remembering its address. */}
         <a
-          href={cal("/projects")}
+          href={adminPath("/projects")}
           className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
         >
           Projects →

@@ -12,7 +12,7 @@ import {
 } from "@/contract";
 import { getApiClient } from "@/lib/api";
 import { CARD_SURFACE, PAGE_TITLE } from "@/lib/card";
-import { cal } from "@/lib/paths";
+import { adminPath, cal } from "@/lib/paths";
 import { splitList, toDraft, toUpdate } from "@/lib/project-draft";
 
 /**
@@ -194,7 +194,7 @@ export default function AdminProjectsPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className={PAGE_TITLE}>Projects</h1>
-        <Link href={cal("/downloads")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+        <Link href={adminPath("/downloads")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
           Downloads →
         </Link>
         <Link href={cal("/users")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">

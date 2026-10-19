@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { userLabel } from "@/contract";
-import { cal } from "@/lib/paths";
+import { adminPath, cal } from "@/lib/paths";
 import { useSession } from "@/lib/session/session-context";
 
 /**
@@ -42,7 +42,7 @@ export function PortfolioAccount() {
     <span className="flex items-center gap-4">
       {user?.role === "admin" && (
         <Link
-          href={cal("/projects")}
+          href={adminPath("/projects")}
           className="text-zinc-500 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
         >
           Manage projects
