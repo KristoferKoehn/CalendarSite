@@ -93,7 +93,15 @@ jobs:
           # process that is killed outright — including the status line, which is the one thing that
           # would have explained the kill.
           Get-Content build-output.txt -ErrorAction SilentlyContinue
-          if ($code -ne 0) { throw "build failed (exit $code)" }
+          if ($code -ne 0) {
+            # The run log needs an authenticated GitHub client to read, which is no help when the build
+            # breaks and all the workflow says is "exit code 1". The games directory is already served
+            # publicly, so the reason appears at /games/_ci-error.txt. Cleaned at the start of every
+            # run; this comes out once the build is trustworthy again.
+            Set-Content -Path 'C:\sites\games\_ci-error.txt' -Encoding utf8 `
+              -Value ((Get-Content build-output.txt -Tail 80 -ErrorAction SilentlyContinue) -join "`n")
+            throw "build failed (exit $code)"
+          }
 
       - name: Restart service
         # `success()` is not redundant: this used to run after a failed build, restarting the service
