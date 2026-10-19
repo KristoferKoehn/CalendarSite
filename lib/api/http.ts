@@ -655,6 +655,17 @@ export class HttpApiClient implements ApiClient {
     } catch {
       // Fall through to a generic error.
     }
+    // A gateway status never comes from this API — the API answers with an error envelope. It comes
+    // from the proxy in front of it, which means the API was not reachable at all: restarting after a
+    // deploy, or down. Worth saying plainly, because "status 502" reads like the request was wrong
+    // when the truth is that it never arrived.
+    if (response.status === 502 || response.status === 503 || response.status === 504) {
+      return new ApiError(
+        ErrorCodes.INTERNAL,
+        `The API is not reachable (${response.status}). It may be restarting — try again in a moment.`,
+        { status: response.status },
+      );
+    }
     return new ApiError(
       ErrorCodes.INTERNAL,
       `Request failed with status ${response.status}`,
