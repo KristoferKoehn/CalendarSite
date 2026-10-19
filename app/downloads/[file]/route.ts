@@ -3,6 +3,7 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { archiveSlug } from "@/lib/archives";
+import { dataDir } from "@/lib/data-dir";
 
 /**
  * Hands over an uploaded archive.
@@ -17,8 +18,8 @@ import { archiveSlug } from "@/lib/archives";
  * over HTTP.
  */
 
-/** Where kept uploads live. The backend writes here; this only reads. */
-const ARCHIVES_DIR = process.env.ARCHIVES_DIR ?? path.join("C:\\sites", "archives");
+/** Where kept uploads live. Resolved per request — see lib/data-dir.ts for why it is not a constant. */
+const archives = () => dataDir("archives");
 
 export async function GET(
   _request: Request,
@@ -28,7 +29,7 @@ export async function GET(
   const slug = archiveSlug(file);
   if (!slug) return new Response("Not found", { status: 404 });
 
-  const root = path.resolve(ARCHIVES_DIR);
+  const root = archives();
   const target = path.resolve(root, `${slug}.zip`);
   // The slug pattern already forbids separators and dots, so this cannot reach outside the directory.
   // Checked anyway: the cost is one comparison, and the alternative if the pattern is ever relaxed is

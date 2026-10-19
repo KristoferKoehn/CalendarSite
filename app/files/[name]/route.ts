@@ -2,6 +2,7 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
+import { dataDir } from "@/lib/data-dir";
 import { canDisplay, contentTypeFor, isFileName } from "@/lib/files";
 
 /**
@@ -15,8 +16,8 @@ import { canDisplay, contentTypeFor, isFileName } from "@/lib/files";
  * this origin, and these files live on the same origin as the session token.
  */
 
-/** Where the shelf is. The backend writes here; this only reads. */
-const FILES_DIR = process.env.FILES_DIR ?? path.join("C:\\sites", "files");
+/** Where the shelf is. Resolved per request — see lib/data-dir.ts for why it is not a constant. */
+const shelf = () => dataDir("files");
 
 export async function GET(
   _request: Request,
@@ -34,7 +35,7 @@ export async function GET(
   }
   if (!isFileName(decoded)) return new Response("Not found", { status: 404 });
 
-  const root = path.resolve(FILES_DIR);
+  const root = shelf();
   const target = path.resolve(root, decoded);
   // The name rules already forbid separators, so this cannot reach outside the directory. Checked
   // anyway: one comparison, against the alternative of arbitrary file disclosure if they are relaxed.

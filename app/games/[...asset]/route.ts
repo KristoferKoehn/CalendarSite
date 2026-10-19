@@ -2,6 +2,7 @@ import { createReadStream } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
+import { dataDir } from "@/lib/data-dir";
 import { SERVICE_WORKER_SHIM, injectShell, isServiceWorker } from "@/lib/game-shell";
 
 /**
@@ -26,8 +27,12 @@ import { SERVICE_WORKER_SHIM, injectShell, isServiceWorker } from "@/lib/game-sh
  * Where the exports live. Outside the repository, because this writes at runtime and a checkout is
  * not a data store — and because a `git pull` deploy would not deliver files that were never
  * committed.
+ *
+ * Resolved per request rather than held in a constant: a literal path here is followed by Turbopack,
+ * which then tries to resolve the directory's contents as build inputs and fails the moment a game is
+ * uploaded. See lib/data-dir.ts.
  */
-const GAMES_DIR = process.env.GAMES_DIR ?? "C:\\sites\\games";
+const games = () => dataDir("games");
 
 /** The types a Godot web export actually contains. */
 const TYPES: Record<string, string> = {
@@ -57,7 +62,7 @@ const TYPES: Record<string, string> = {
  * a link to `/games/foo` is what a project card would carry, not `/games/foo/index.html`.
  */
 async function resolveAsset(segments: string[]): Promise<{ file: string; isDirectory: boolean } | null> {
-  const root = path.resolve(GAMES_DIR);
+  const root = games();
   const joined = path.resolve(root, ...segments);
 
   // `startsWith(root + sep)` and not `startsWith(root)`, or a sibling named `games-other` would pass.
