@@ -101,11 +101,10 @@ export default function PortfolioPage() {
         </section>
       </main>
 
-      <footer className="mt-20 flex flex-wrap items-baseline justify-between gap-2 border-t border-zinc-200 pt-5 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-        <span>Built with Next.js and Go.</span>
-        <a href="mailto:hello@example.com" className="underline-offset-4 hover:underline">
-          hello@example.com
-        </a>
+      {/* No address here: the header already carries one, and the same mailto twice on a page with
+          three rows on it is repetition rather than information. */}
+      <footer className="mt-20 border-t border-zinc-200 pt-5 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+        Built with Next.js and Go.
       </footer>
     </div>
   );
