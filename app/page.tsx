@@ -18,7 +18,7 @@ import { readProjects } from "@/lib/projects";
  * The plain `description` covers everything older.
  */
 const TAGLINE = "Software For The People";
-const BLURB = "Small, complete applications, built one at a time and finished properly.";
+const BLURB = "Small, complete applications, built properly.";
 
 export const metadata: Metadata = {
   title: `${TAGLINE} — Kristofer Koehn`,
