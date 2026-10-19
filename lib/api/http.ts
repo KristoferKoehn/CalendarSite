@@ -3,6 +3,8 @@ import {
   appointmentDeleteOutputSchema,
   appointmentListOutputSchema,
   appointmentSchema,
+  downloadListSchema,
+  downloadResponseSchema,
   errorEnvelopeSchema,
   fileListSchema,
   fileResponseSchema,
@@ -35,6 +37,7 @@ import {
   type ResetPasswordOutput,
   type VerifyEmailInput,
   type VerifyEmailOutput,
+  type Download,
   type Project,
   type StoredFile,
   type ProjectCreateInput,
@@ -505,6 +508,27 @@ export class HttpApiClient implements ApiClient {
       schema: fileResponseSchema,
     });
     return result.ok ? ok(result.value.file) : result;
+  }
+
+  // The downloads inventory.
+  async listDownloads(): Promise<Result<Download[], ApiError>> {
+    const result = await this.request({
+      method: "GET",
+      path: "/downloads",
+      auth: true,
+      schema: downloadListSchema,
+    });
+    return result.ok ? ok(result.value.downloads) : result;
+  }
+
+  async deleteDownload(slug: string): Promise<Result<Download, ApiError>> {
+    const result = await this.request({
+      method: "DELETE",
+      path: `/downloads/${encodeURIComponent(slug)}`,
+      auth: true,
+      schema: downloadResponseSchema,
+    });
+    return result.ok ? ok(result.value.download) : result;
   }
 
   private async request<T>(options: RequestOptions<T>): Promise<Result<T, ApiError>> {

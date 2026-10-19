@@ -115,6 +115,9 @@ export default function AdminFilesPage() {
           <Link href={cal("/projects")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
             Projects →
           </Link>
+          <Link href={cal("/downloads")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+            Downloads →
+          </Link>
           <Link href={cal("/users")} className="text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
             Accounts →
           </Link>

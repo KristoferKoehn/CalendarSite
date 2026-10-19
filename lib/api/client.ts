@@ -10,6 +10,7 @@ import type {
   LoginInput,
   LoginOutput,
   ProfileUpdateInput,
+  Download,
   Project,
   StoredFile,
   ProjectCreateInput,
@@ -86,6 +87,10 @@ export interface ApiClient {
   listFiles(): Promise<Result<StoredFile[], ApiError>>;
   uploadFile(file: File, name?: string): Promise<Result<StoredFile, ApiError>>;
   deleteFile(name: string): Promise<Result<StoredFile, ApiError>>;
+
+  /** Archives projects hand over, as files rather than as a property of a card. Admin-only. */
+  listDownloads(): Promise<Result<Download[], ApiError>>;
+  deleteDownload(slug: string): Promise<Result<Download, ApiError>>;
 
   createAppointment(input: AppointmentCreateInput): Promise<Result<Appointment, ApiError>>;
   listAppointments(query?: AppointmentListQuery): Promise<Result<Appointment[], ApiError>>;

@@ -154,7 +154,10 @@ export default function AdminProjectsPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className={PAGE_TITLE}>Projects</h1>
-        <Link href={cal("/users")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+        <Link href={cal("/downloads")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+          Downloads →
+        </Link>
+        <Link href={cal("/downloads")} className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
           Accounts →
         </Link>
       </div>

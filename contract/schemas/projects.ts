@@ -149,3 +149,25 @@ export type FileList = z.infer<typeof fileListSchema>;
 
 export const fileResponseSchema = z.object({ file: fileSchema });
 export type FileResponse = z.infer<typeof fileResponseSchema>;
+
+/**
+ * An archive a project hands over, seen as a file in its own right.
+ *
+ * It exists because a download is both: created by a project, and a thing with an address, a size and a
+ * link somebody may have pasted somewhere. `projectSlug` is empty for an archive no project points at.
+ */
+export const downloadSchema = z.object({
+  slug: z.string(),
+  size: z.number(),
+  modifiedAt: isoTimestampSchema,
+  href: z.string(),
+  projectSlug: z.string(),
+  projectName: z.string(),
+});
+export type Download = z.infer<typeof downloadSchema>;
+
+export const downloadListSchema = z.object({ downloads: z.array(downloadSchema) });
+export type DownloadList = z.infer<typeof downloadListSchema>;
+
+export const downloadResponseSchema = z.object({ download: downloadSchema });
+export type DownloadResponse = z.infer<typeof downloadResponseSchema>;
