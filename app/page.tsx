@@ -7,9 +7,34 @@ import { RichText } from "@/components/rich-text";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { readProjects } from "@/lib/projects";
 
+/**
+ * What this page says about itself when it is pasted somewhere.
+ *
+ * The headline on the page and the blurb in an embed are the same sentence, so they are written once
+ * here and used in both places — a link preview that disagrees with the page it points at is worse
+ * than no preview at all.
+ *
+ * Open Graph is what most places read: a chat client, a social feed, an editor that unfurls a link.
+ * The plain `description` covers everything older.
+ */
+const TAGLINE = "Software For The People";
+const BLURB = "Small, complete applications, built one at a time and finished properly.";
+
 export const metadata: Metadata = {
-  title: "Kristofer Koehn — projects",
-  description: "Small, complete applications. Software for rooms, schedules and the people who use them.",
+  title: `${TAGLINE} — Kristofer Koehn`,
+  description: BLURB,
+  openGraph: {
+    title: TAGLINE,
+    description: BLURB,
+    siteName: "Kristofer Koehn",
+    type: "website",
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary",
+    title: TAGLINE,
+    description: BLURB,
+  },
 };
 
 /**
@@ -45,12 +70,9 @@ export default function PortfolioPage() {
 
       <main className="flex-1">
         <h1 className="mt-16 max-w-xl text-balance text-2xl font-medium leading-snug sm:mt-24 sm:text-3xl">
-          Software for rooms, schedules and the people who use them.
+          {TAGLINE}
         </h1>
-        <p className="mt-5 max-w-xl text-zinc-600 dark:text-zinc-400">
-          I build small, complete applications — one thing done properly rather than ten things
-          sketched.
-        </p>
+        <p className="mt-5 max-w-xl text-zinc-600 dark:text-zinc-400">{BLURB}</p>
 
         <section id="projects" className="mt-16 sm:mt-20">
           <div className="flex items-baseline justify-between border-b border-zinc-200 pb-2 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
