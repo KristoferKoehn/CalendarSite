@@ -130,3 +130,22 @@ export interface ProjectUpdateInput {
   when?: string;
   href?: string;
 }
+
+/**
+ * One file on the shelf.
+ *
+ * There is no metadata behind these: the directory is the list, so name, size and time are read from
+ * the filesystem and cannot disagree with what is actually stored.
+ */
+export const fileSchema = z.object({
+  name: z.string(),
+  size: z.number(),
+  modifiedAt: isoTimestampSchema,
+});
+export type StoredFile = z.infer<typeof fileSchema>;
+
+export const fileListSchema = z.object({ files: z.array(fileSchema) });
+export type FileList = z.infer<typeof fileListSchema>;
+
+export const fileResponseSchema = z.object({ file: fileSchema });
+export type FileResponse = z.infer<typeof fileResponseSchema>;

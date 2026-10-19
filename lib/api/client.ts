@@ -11,6 +11,7 @@ import type {
   LoginOutput,
   ProfileUpdateInput,
   Project,
+  StoredFile,
   ProjectCreateInput,
   ProjectUpdateInput,
   RegisterInput,
@@ -80,6 +81,11 @@ export interface ApiClient {
   createProject(input: ProjectCreateInput): Promise<Result<Project, ApiError>>;
   updateProject(slug: string, input: ProjectUpdateInput): Promise<Result<Project, ApiError>>;
   deleteProject(slug: string): Promise<Result<Project, ApiError>>;
+
+  /** The file shelf. Admin-only, because it is a place to put things rather than a public library. */
+  listFiles(): Promise<Result<StoredFile[], ApiError>>;
+  uploadFile(file: File, name?: string): Promise<Result<StoredFile, ApiError>>;
+  deleteFile(name: string): Promise<Result<StoredFile, ApiError>>;
 
   createAppointment(input: AppointmentCreateInput): Promise<Result<Appointment, ApiError>>;
   listAppointments(query?: AppointmentListQuery): Promise<Result<Appointment[], ApiError>>;

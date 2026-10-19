@@ -4,6 +4,8 @@ import {
   appointmentListOutputSchema,
   appointmentSchema,
   errorEnvelopeSchema,
+  fileListSchema,
+  fileResponseSchema,
   loginOutputSchema,
   projectListSchema,
   projectResponseSchema,
@@ -34,6 +36,7 @@ import {
   type VerifyEmailInput,
   type VerifyEmailOutput,
   type Project,
+  type StoredFile,
   type ProjectCreateInput,
   type ProjectUpdateInput,
   type Resource,
@@ -462,6 +465,46 @@ export class HttpApiClient implements ApiClient {
       schema: projectResponseSchema,
     });
     return result.ok ? ok(result.value.project) : result;
+  }
+
+  // The file shelf.
+  async listFiles(): Promise<Result<StoredFile[], ApiError>> {
+    const result = await this.request({
+      method: "GET",
+      path: "/files",
+      auth: true,
+      schema: fileListSchema,
+    });
+    return result.ok ? ok(result.value.files) : result;
+  }
+
+  async uploadFile(file: File, name?: string): Promise<Result<StoredFile, ApiError>> {
+    const form = new FormData();
+    form.set("file", file);
+    // Left off when absent: the backend falls back to the name the browser sent.
+    if (name) form.set("name", name);
+
+    const result = await this.request({
+      method: "POST",
+      path: "/files",
+      auth: true,
+      body: form,
+      schema: fileResponseSchema,
+      // The same reasoning as the game upload: a big file takes as long as the connection takes, and
+      // fifteen seconds would report a timeout for something that is working.
+      timeoutMs: 10 * 60_000,
+    });
+    return result.ok ? ok(result.value.file) : result;
+  }
+
+  async deleteFile(name: string): Promise<Result<StoredFile, ApiError>> {
+    const result = await this.request({
+      method: "DELETE",
+      path: `/files/${encodeURIComponent(name)}`,
+      auth: true,
+      schema: fileResponseSchema,
+    });
+    return result.ok ? ok(result.value.file) : result;
   }
 
   private async request<T>(options: RequestOptions<T>): Promise<Result<T, ApiError>> {
