@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { projectListSchema, type Project } from "@/contract";
 
 /**
@@ -27,13 +28,18 @@ const API_URL = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL 
  * A failure returns an empty list rather than throwing. A front page that renders "nothing published"
  * while the API is down is wrong, but it is a quieter wrong than an error page where a portfolio
  * should be — and the alternative, crashing the shell, takes the whole page with it.
+ *
+ * Wrapped in React's `cache`, which shares one result across a single render. The page asks twice — once
+ * for the order of the rows, once for the count in the section header — and without this that would be
+ * two requests to the API for the same list. It is request-scoped, not a cache: a later visit fetches
+ * again, which is the point.
  */
-export async function readProjects(): Promise<Project[]> {
+export const readProjects = cache(async (): Promise<Project[]> => {
   if (!API_URL) return [];
 
   try {
-    // Not cached. A project published through the admin form is meant to appear on the next visit,
-    // and caching here would restore exactly the staleness this feature exists to remove.
+    // Not cached by fetch either. A project published through the admin form is meant to appear on the
+    // next visit, and caching here would restore exactly the staleness this feature exists to remove.
     const response = await fetch(`${API_URL}/projects`, { cache: "no-store" });
     if (!response.ok) return [];
     const parsed = projectListSchema.safeParse(await response.json());
@@ -41,4 +47,4 @@ export async function readProjects(): Promise<Project[]> {
   } catch {
     return [];
   }
-}
+});
